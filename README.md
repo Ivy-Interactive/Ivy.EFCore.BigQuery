@@ -1,1 +1,1 @@
-# Ivy.EFCore.BiqQuery
+# Ivy.EFCore.BigQuery
