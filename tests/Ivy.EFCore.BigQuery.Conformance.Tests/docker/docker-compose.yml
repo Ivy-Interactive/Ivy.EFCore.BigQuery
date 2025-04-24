@@ -1,0 +1,12 @@
+﻿version: '3.8'
+
+services:
+  bq-emulator:
+    image: ghcr.io/goccy/bigquery-emulator:latest
+    container_name: bq-emulator
+    ports:
+      - "9050:9050"
+      - "9060:9060"
+    volumes:
+      - ./data:/data
+    command: --project=test --data-from-yaml=/data/data.yml

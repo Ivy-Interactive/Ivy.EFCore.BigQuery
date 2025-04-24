@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Ivy.EFCore.BigQuery.Query.Internal
+{
+    internal class BigQueryClientWrapper : IBigQueryClientWrapper
+    {
+    }
+
+    public interface IBigQueryClientWrapper
+    {
+
+    }
+}

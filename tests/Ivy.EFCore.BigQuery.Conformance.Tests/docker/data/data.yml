@@ -1,0 +1,4 @@
+﻿projects:
+- id: test
+  datasets:
+    - id: ado_tests
