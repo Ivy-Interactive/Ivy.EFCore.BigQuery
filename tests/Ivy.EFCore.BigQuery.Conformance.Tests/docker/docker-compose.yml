@@ -1,5 +1,4 @@
-﻿version: '3.8'
-
+﻿name: bq-emulator
 services:
   bq-emulator:
     image: ghcr.io/goccy/bigquery-emulator:latest

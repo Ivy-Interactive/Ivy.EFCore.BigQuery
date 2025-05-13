@@ -5,10 +5,11 @@ using Google.Apis.Bigquery.v2.Data;
 using System.Globalization;
 using System.Collections;
 using System.Windows.Input;
+using System.Collections.ObjectModel;
 
 namespace Ivy.EFCore.BigQuery.Data
 {
-    public class BigQueryDataReader : DbDataReader
+    public class BigQueryDataReader : DbDataReader, IDbColumnSchemaGenerator
     {
         private readonly BigQueryResults _results;
         private readonly BigQueryClient _client; //todo remove?
@@ -21,12 +22,13 @@ namespace Ivy.EFCore.BigQuery.Data
         private bool _isClosed;
         private bool _hasRows;
         private bool _readCalledOnce;
+        private CommandBehavior _behavior;
 
         private readonly int _recordsAffected = -1;
         private readonly bool _closeConnection;
         private readonly BigQueryCommand _command;
 
-        public BigQueryDataReader(BigQueryClient client, BigQueryResults results, BigQueryCommand command, bool closeConnection, int recordsAffected = -1)
+        public BigQueryDataReader(BigQueryClient client, BigQueryResults results, BigQueryCommand command, CommandBehavior behavior, bool closeConnection, int recordsAffected = -1)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _results = results ?? throw new ArgumentNullException(nameof(results));
@@ -34,6 +36,7 @@ namespace Ivy.EFCore.BigQuery.Data
             _recordsAffected = recordsAffected;
             _closeConnection = closeConnection;
             _command = command;
+            _behavior = behavior;
 
             _fieldNameLookup = new Dictionary<string, int>(_schema.Fields.Count, StringComparer.OrdinalIgnoreCase);
             _fieldTypes = new Type[_schema.Fields.Count];
@@ -50,12 +53,14 @@ namespace Ivy.EFCore.BigQuery.Data
             if (_rowEnumerator == null) return;
 
             _hasRows = _rowEnumerator.MoveNext();
+
             if (_hasRows)
             {
                 _currentRow = _rowEnumerator.Current;
                 _rowEnumerator = _results.GetEnumerator();
                 _currentRow = null;
             }
+
             else
             {
                 _rowEnumerator.Dispose();
@@ -63,7 +68,14 @@ namespace Ivy.EFCore.BigQuery.Data
             }
         }
 
-        public override int FieldCount => _isClosed ? 0 : _schema.Fields.Count;
+        public override int FieldCount
+        {
+            get
+            {
+                EnsureNotClosed();
+                return (_isClosed || _recordsAffected > -1) ? 0 : _schema.Fields.Count;
+            }
+        }
 
         public override bool HasRows => !_isClosed && _hasRows;
 
@@ -109,7 +121,12 @@ namespace Ivy.EFCore.BigQuery.Data
                 return false;
             }
 
-            bool hasMoreRows = _rowEnumerator.MoveNext();
+            if (_behavior == CommandBehavior.SingleRow && _readCalledOnce)
+            {
+                return false;
+            }
+
+            var hasMoreRows = _rowEnumerator.MoveNext();
             if (hasMoreRows)
             {
                 _currentRow = _rowEnumerator.Current;
@@ -127,6 +144,11 @@ namespace Ivy.EFCore.BigQuery.Data
         public override DataTable GetSchemaTable()
         {
             EnsureNotClosed();
+
+            if (RecordsAffected > 0 || _schema == null || FieldCount < 1)
+            {
+                return null;
+            }
 
             var schemaTable = new DataTable("SchemaTable");
             schemaTable.Locale = CultureInfo.InvariantCulture;
@@ -188,6 +210,10 @@ namespace Ivy.EFCore.BigQuery.Data
         public override string GetName(int ordinal)
         {
             EnsureNotClosed();
+            if (FieldCount < 1)
+            {
+                throw new InvalidOperationException("There are no results");
+            }
             ValidateOrdinal(ordinal);
             return _schema.Fields[ordinal].Name;
         }
@@ -205,7 +231,12 @@ namespace Ivy.EFCore.BigQuery.Data
         public override Type GetFieldType(int ordinal)
         {
             EnsureNotClosed();
+            if (FieldCount < 1)
+            {
+                throw new InvalidOperationException("There are no results");
+            }
             ValidateOrdinal(ordinal);
+            
             return _fieldTypes[ordinal];
         }
 
@@ -239,7 +270,6 @@ namespace Ivy.EFCore.BigQuery.Data
 
         public override bool GetBoolean(int ordinal) => GetFieldValue<bool>(ordinal);
         public override byte GetByte(int ordinal) => GetFieldValue<byte>(ordinal);
-        public override char GetChar(int ordinal) => GetFieldValue<char>(ordinal);
         public override decimal GetDecimal(int ordinal) => GetFieldValue<decimal>(ordinal);
         public override double GetDouble(int ordinal) => GetFieldValue<double>(ordinal);
         public override float GetFloat(int ordinal) => GetFieldValue<float>(ordinal);
@@ -247,6 +277,7 @@ namespace Ivy.EFCore.BigQuery.Data
         public override short GetInt16(int ordinal) => GetFieldValue<short>(ordinal);
         public override int GetInt32(int ordinal) => GetFieldValue<int>(ordinal);
         public override long GetInt64(int ordinal) => GetFieldValue<long>(ordinal);
+        public override TextReader GetTextReader(int ordinal) => new StringReader(GetString(ordinal));
 
         public override DateTime GetDateTime(int ordinal)
         {
@@ -291,15 +322,27 @@ namespace Ivy.EFCore.BigQuery.Data
             return Convert.ToDateTime(value, CultureInfo.InvariantCulture);
         }
 
+
+        public override char GetChar(int ordinal)
+        {
+            var stringValue = (string)GetValue(ordinal);
+            return stringValue.Length > 0 ? stringValue[0] : throw new InvalidCastException();
+        }
+
         public override string GetString(int ordinal)
         {
             EnsureNotClosed();
             EnsureHasData();
             ValidateOrdinal(ordinal);
             var value = _currentRow?[ordinal];
+            if (value is not string)
+            {
+                throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type 'System.String'.");
+            }
             return (value == null ? null : Convert.ToString(value, CultureInfo.InvariantCulture)) ?? string.Empty;
         }
 
+       
         public override T GetFieldValue<T>(int ordinal)
         {
             EnsureNotClosed();
@@ -321,6 +364,21 @@ namespace Ivy.EFCore.BigQuery.Data
             {
                 if (value is bool boolValue) return (T)(object)boolValue;
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type 'System.Boolean'.");
+            }
+
+            if (typeof(T) == typeof(Stream))
+            {
+                return (T)(object)GetStream(ordinal);
+            }
+
+            if (typeof(T) == typeof(TextReader) || typeof(T) == typeof(StringReader))
+            {
+                return (T)(object)GetTextReader(ordinal);
+            }
+
+            if (value is bool && typeof(T) != typeof(bool) || typeof(T) == typeof(string) && value is not string)
+            {
+                throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type '{typeof(T)}'.");
             }
 
             var bqFieldType = _schema.Fields[ordinal].Type;
@@ -367,7 +425,13 @@ namespace Ivy.EFCore.BigQuery.Data
                     return (T)(object)bytesValue;
                 }
 
-                if (value is T typedValue) return typedValue;
+                switch (value)
+                {
+                    case T typedValue:
+                        return typedValue;
+                    case string s when string.IsNullOrWhiteSpace(s):
+                        throw new InvalidCastException($"Cannot cast empty string to type '{typeof(T)}'.");
+                }
 
                 return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
             }
@@ -417,6 +481,37 @@ namespace Ivy.EFCore.BigQuery.Data
             return TableFieldSchemaTypeToNetType(type, isArray);
         }
 
+        public override Stream GetStream(int ordinal)
+        {
+            EnsureNotClosed();
+            EnsureHasData();
+            ValidateOrdinal(ordinal);
+
+            var bqTypename = GetDataTypeName(ordinal);
+            var bqType = Util.ParameterApiTypeToDbType(bqTypename);
+            if (bqType != BigQueryDbType.Bytes)
+            {
+                throw new InvalidCastException($"Cannot get Stream for column '{GetName(ordinal)}' with BigQuery type '{bqType}'. Stream is only supported for BYTES type.");
+            }
+
+            var value = _currentRow[ordinal];
+
+            if (value == null)
+            {
+                throw new InvalidCastException($"Cannot get Stream for column '{GetName(ordinal)}' because the value is DBNull.");
+            }
+
+            try
+            {
+                var bytes = (byte[])value;
+                return new MemoryStream(bytes, writable: false);
+            }
+            catch (InvalidCastException ice)
+            {
+                throw new InvalidCastException($"Underlying value type mismatch for BYTES column '{GetName(ordinal)}'. Expected System.Byte[] but received '{value?.GetType()}'.", ice);
+            }
+        }
+
         public override object GetProviderSpecificValue(int ordinal)
         {
             EnsureNotClosed();
@@ -449,6 +544,9 @@ namespace Ivy.EFCore.BigQuery.Data
             EnsureHasData();
             ValidateOrdinal(ordinal);
 
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, int.MaxValue);
+
             var value = _currentRow?[ordinal];
             if (value == null || value == DBNull.Value)
             {
@@ -464,6 +562,11 @@ namespace Ivy.EFCore.BigQuery.Data
             {
                 return sourceBuffer.Length;
             }
+
+            if (bufferOffset < 0 || bufferOffset >= buffer.Length + 1)
+                throw new ArgumentException($"bufferOffset must be between 0 and {buffer.Length}");
+            if (length > buffer.Length - bufferOffset)
+                throw new IndexOutOfRangeException($"length must be between 0 and {buffer.Length - bufferOffset}");
 
             dataOffset = Math.Max(0, Math.Min(dataOffset, sourceBuffer.Length));
 
@@ -489,7 +592,18 @@ namespace Ivy.EFCore.BigQuery.Data
             EnsureHasData();
             ValidateOrdinal(ordinal);
 
+            //Todo refactor
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, int.MaxValue);
+            if (bufferOffset < 0 || bufferOffset >= buffer?.Length +1)
+                throw new ArgumentOutOfRangeException($"bufferOffset must be between 0 and {buffer?.Length}");
+            if (checked(bufferOffset + length) > buffer.Length)
+            {
+                throw new ArgumentException($"bufferOffset + length can't be bigger than {buffer.Length} (buffer.Length)");
+            }
+
             var value = GetString(ordinal);
+
             if (string.IsNullOrEmpty(value))
             {
                 return 0;
@@ -522,7 +636,11 @@ namespace Ivy.EFCore.BigQuery.Data
         public override string GetDataTypeName(int ordinal)
         {
             EnsureNotClosed();
-            ValidateOrdinal(ordinal);
+            //ValidateOrdinal(ordinal);
+            if (!HasRows)
+            {
+                throw new InvalidOperationException("There are no results");
+            }
 
             var field = _schema.Fields[ordinal];
 
@@ -536,7 +654,7 @@ namespace Ivy.EFCore.BigQuery.Data
             return baseTypeName;
         }
 
-        // Not supported by BigQuery
+        // Client doesn't support multiple result sets (only returns the first one). 
         public override bool NextResult()
         {
             EnsureNotClosed();
@@ -545,6 +663,57 @@ namespace Ivy.EFCore.BigQuery.Data
             _currentRow = null;
             _hasRows = false;
             return false;
+        }
+
+        public ReadOnlyCollection<DbColumn> GetColumnSchema()
+        {
+            EnsureNotClosed();
+
+            if (_schema?.Fields == null || _schema.Fields.Count == 0)
+            {
+                return new ReadOnlyCollection<DbColumn>(new List<DbColumn>());
+            }
+
+            var columnSchemaList = new List<DbColumn>(FieldCount);
+
+            for (var i = 0; i < FieldCount; i++)
+            {
+                var field = _schema.Fields[i];
+                var bqDbType = field.Type;
+                var netType = _fieldTypes[i];
+                var bqTypeName = GetDataTypeName(i);
+
+                int? columnSize = -1;
+                int? numericPrecision = null;
+                int? numericScale = null;
+                var allowDbNull = field.Mode != "REQUIRED";
+
+                if (Util.ParameterApiTypeToDbType(bqDbType) == BigQueryDbType.Numeric)
+                {
+                    numericPrecision = 38;
+                    numericScale = 9;
+                }
+                else if (Util.ParameterApiTypeToDbType(bqDbType) == BigQueryDbType.BigNumeric)
+                {
+                    numericPrecision = 77;
+                    numericScale = 38;
+                }
+
+                var dbColumn = new BigQueryDbColumn(
+                    columnName: field.Name,
+                    ordinal: i,
+                    dataType: netType,
+                    dataTypeName: bqTypeName,
+                    allowDbNull: allowDbNull,
+                    columnSize: columnSize,
+                    numericPrecision: numericPrecision,
+                    numericScale: numericScale
+                );
+
+                columnSchemaList.Add(dbColumn);
+            }
+
+            return new ReadOnlyCollection<DbColumn>(columnSchemaList);
         }
 
         private void EnsureNotClosed()
@@ -581,16 +750,16 @@ namespace Ivy.EFCore.BigQuery.Data
         {
             var baseType = type switch
             {
-                "INT64" => isArray ? typeof(long[]) : typeof(long?),
-                "FLOAT64" => isArray ? typeof(double[]) : typeof(double?),
-                "BOOL" => isArray ? typeof(bool[]) : typeof(bool?),
+                "INT64" or "INTEGER" => isArray ? typeof(long[]) : typeof(long),
+                "FLOAT64" => isArray ? typeof(double[]) : typeof(double),
+                "BOOL" => isArray ? typeof(bool[]) : typeof(bool),
                 "STRING" => isArray ? typeof(string[]) : typeof(string),
                 "BYTES" => isArray ? typeof(byte[][]) : typeof(byte[]),
                 "TIMESTAMP" => isArray ? typeof(DateTimeOffset[]) : typeof(DateTimeOffset?),
                 "DATE" => isArray ? typeof(DateTime[]) : typeof(DateTime?),
                 "TIME" => isArray ? typeof(TimeSpan[]) : typeof(TimeSpan?),
-                "DATETIME" => isArray ? typeof(DateTime[]) : typeof(DateTime?),
-                "NUMERIC" or "BIGNUMERIC" => isArray ? typeof(BigQueryNumeric[]) : typeof(BigQueryNumeric?),
+                "DATETIME" => isArray ? typeof(DateTime[]) : typeof(DateTime),
+                "NUMERIC" or "BIGNUMERIC" => isArray ? typeof(BigQueryNumeric[]) : typeof(BigQueryNumeric),
                 "GEOGRAPHY" => isArray ? typeof(string[]) : typeof(string),
                 "JSON" => isArray ? typeof(string[]) : typeof(string),
                 "STRUCT" => isArray ? typeof(Dictionary<string, object>[]) : typeof(Dictionary<string, object>),

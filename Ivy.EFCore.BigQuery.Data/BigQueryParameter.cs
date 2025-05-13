@@ -101,7 +101,7 @@ namespace Ivy.EFCore.BigQuery.Data
                 {
                     _parameterName = string.Empty;
                 }
-                else if (value.StartsWith("@"))
+                else if (value.StartsWith('@'))
                 {
                     _parameterName = value;
                 }
@@ -262,5 +262,4 @@ namespace Ivy.EFCore.BigQuery.Data
             return new Google.Cloud.BigQuery.V2.BigQueryParameter(name, type.Value, apiValue);
         }
     }
-
 }

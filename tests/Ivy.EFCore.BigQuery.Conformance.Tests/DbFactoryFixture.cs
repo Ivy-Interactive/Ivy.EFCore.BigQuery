@@ -7,6 +7,7 @@ namespace Ivy.EFCore.BigQuery.Data.Conformance.Tests
     {
         public DbFactoryFixture()
         {
+            //Todo environment variable
             ConnectionString = "DataSource=http://localhost:9050;AuthMethod=ApplicationDefaultCredentials;ProjectId=test;DefaultDatasetId=ado_tests";
         }
 

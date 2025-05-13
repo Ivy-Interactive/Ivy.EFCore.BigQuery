@@ -10,10 +10,8 @@ public class Util
         connection.ConnectionString = Environment.GetEnvironmentVariable("ConnectionString") ?? factoryFixture.ConnectionString;
         connection.Open();
 
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = sql;
-            command.ExecuteNonQuery();
-        }
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.ExecuteNonQuery();
     }
 }

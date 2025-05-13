@@ -190,13 +190,10 @@ namespace Ivy.EFCore.BigQuery.Data
                     options: null,
                     cancellationToken: effectiveToken).ConfigureAwait(false);
 
-                if (results.NumDmlAffectedRows.HasValue)
-                {
-                    throw new InvalidOperationException("The command text executed was a data modification query, which cannot be executed with ExecuteReader. Use ExecuteNonQuery.");
-                }
+                var recordsAffected = results.NumDmlAffectedRows.HasValue ? (int)results.NumDmlAffectedRows.Value : -1;
 
                 var closeConnection = behavior.HasFlag(CommandBehavior.CloseConnection);
-                var dataReader = new BigQueryDataReader(client, results, this, closeConnection,  recordsAffected: -1);
+                var dataReader = new BigQueryDataReader(client, results, this, behavior, closeConnection, recordsAffected);
                 return DataReader = dataReader;
 
             }
@@ -411,6 +408,7 @@ namespace Ivy.EFCore.BigQuery.Data
                     Debug.WriteLine($"  {p.ParameterName} ({typeStr}) = {valueStr}");
                 }
             }
+
             Debug.WriteLine("----------------------------------");
         }
 

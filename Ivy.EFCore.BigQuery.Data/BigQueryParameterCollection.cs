@@ -26,7 +26,7 @@ public class BigQueryParameterCollection : DbParameterCollection
 
     public BigQueryParameter Add(BigQueryParameter value)
     {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
 
         if (Contains(value.ParameterName)) throw new ArgumentException($"Parameter '{value.ParameterName}' already exists in the collection.");
         _parameters.Add(value);
