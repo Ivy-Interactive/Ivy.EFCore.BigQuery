@@ -8,7 +8,7 @@ namespace Ivy.EFCore.BigQuery.Data
     {
         private string _parameterName = string.Empty;
         private object _value;
-        private DbType _dbType = DbType.Object;
+        private DbType _dbType = DbType.String;
         private BigQueryDbType? _bqDbType;
         private ParameterDirection _direction = ParameterDirection.Input;
         private bool _isNullable;
@@ -85,12 +85,7 @@ namespace Ivy.EFCore.BigQuery.Data
             }
         }
 
-        public override bool IsNullable
-        {
-            get => _isNullable || Value == null || Value == DBNull.Value;
-            set => _isNullable = value;
-        }
-
+        public sealed override bool IsNullable { get; set; }
 
         public override string ParameterName
         {
@@ -122,7 +117,7 @@ namespace Ivy.EFCore.BigQuery.Data
             set
             {
                 _value = value;
-                if (!_bqDbType.HasValue)
+                if (value != null && !_bqDbType.HasValue)
                 {
                     var inferred = InferTypesFromValue(value);
                     _dbType = inferred.DbType;
@@ -134,9 +129,11 @@ namespace Ivy.EFCore.BigQuery.Data
 
         public override int Size { get => _size; set => _size = value; }
 
+        public BigQueryParameterCollection? Collection { get; set; }
+
         public override void ResetDbType()
         {
-            _dbType = DbType.Object;
+            _dbType = DbType.String;
             _bqDbType = null;
             Value = null;
         }
@@ -173,12 +170,12 @@ namespace Ivy.EFCore.BigQuery.Data
             Google.Cloud.BigQuery.V2.BigQueryDbType.Date => DbType.Date,
             Google.Cloud.BigQuery.V2.BigQueryDbType.Time => DbType.Time,
             Google.Cloud.BigQuery.V2.BigQueryDbType.DateTime => DbType.DateTime,
-            Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric => DbType.Decimal, // Closest standard type
-            Google.Cloud.BigQuery.V2.BigQueryDbType.BigNumeric => DbType.VarNumeric, // Or Decimal, knowing precision loss is possible
-            Google.Cloud.BigQuery.V2.BigQueryDbType.Geography => DbType.String, // WKT string
+            Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric => DbType.Decimal,
+            Google.Cloud.BigQuery.V2.BigQueryDbType.BigNumeric => DbType.VarNumeric,
+            Google.Cloud.BigQuery.V2.BigQueryDbType.Geography => DbType.String, 
             Google.Cloud.BigQuery.V2.BigQueryDbType.Json => DbType.String, // JSON string
-            Google.Cloud.BigQuery.V2.BigQueryDbType.Struct => DbType.Object, // No direct DbType
-            Google.Cloud.BigQuery.V2.BigQueryDbType.Array => DbType.Object, // No direct DbType
+            Google.Cloud.BigQuery.V2.BigQueryDbType.Struct => DbType.Object, 
+            Google.Cloud.BigQuery.V2.BigQueryDbType.Array => DbType.Object,
             _ => DbType.Object,
         };
 
@@ -189,8 +186,9 @@ namespace Ivy.EFCore.BigQuery.Data
                 return (DbType.Object, null); // Cannot infer from null
             }
 
-            Type type = value.GetType();
+            var type = value.GetType();
 
+            if (value is Stream) return (DbType.Binary, Google.Cloud.BigQuery.V2.BigQueryDbType.Bytes);
             if (type == typeof(int) || type == typeof(int?)) return (DbType.Int32, Google.Cloud.BigQuery.V2.BigQueryDbType.Int64);
             if (type == typeof(short) || type == typeof(short?)) return (DbType.Int16, Google.Cloud.BigQuery.V2.BigQueryDbType.Int64);
             if (type == typeof(byte) || type == typeof(byte?)) return (DbType.Byte, Google.Cloud.BigQuery.V2.BigQueryDbType.Int64);
@@ -245,10 +243,8 @@ namespace Ivy.EFCore.BigQuery.Data
                 {
                     throw new InvalidOperationException($"Cannot automatically determine BigQuery array type for parameter '{ParameterName}'. Set the BigQueryDbType explicitly (e.g., BigQueryDbType.Array with element type).");
                 }
-                else
-                {
-                    throw new InvalidOperationException($"Cannot determine BigQueryDbType for parameter '{ParameterName}'. Set DbType or BigQueryDbType explicitly.");
-                }
+
+                throw new InvalidOperationException($"Cannot determine BigQueryDbType for parameter '{ParameterName}'. Set DbType or BigQueryDbType explicitly.");
             }
 
             var name = ParameterName[1..];
@@ -257,6 +253,47 @@ namespace Ivy.EFCore.BigQuery.Data
             if (apiValue == DBNull.Value)
             {
                 apiValue = null;
+            }
+
+            else if (apiValue is Stream streamValue)
+            {
+                byte[] streamBytes;
+                if (streamValue.CanSeek)
+                {
+                    try
+                    {
+                        streamValue.Position = 0;
+                    }
+                    catch (NotSupportedException) { }
+
+                    if (streamValue.Length > int.MaxValue)
+                    {
+                        throw new NotSupportedException("Streams larger than 2GB are not supported for direct parameter binding.");
+                    }
+                    streamBytes = new byte[streamValue.Length];
+                    var bytesRead = 0;
+                    var offset = 0;
+                    while ((bytesRead = streamValue.Read(streamBytes, offset, streamBytes.Length - offset)) > 0)
+                    {
+                        offset += bytesRead;
+                    }
+                    if (offset != streamBytes.Length)
+                    {
+                        Array.Resize(ref streamBytes, offset);
+                    }
+                }
+                else
+                {
+                    using var ms = new MemoryStream();
+                    streamValue.CopyTo(ms);
+                    streamBytes = ms.ToArray();
+                }
+                apiValue = streamBytes;
+
+                if (type.Value != Google.Cloud.BigQuery.V2.BigQueryDbType.Bytes)
+                {
+                    type = Google.Cloud.BigQuery.V2.BigQueryDbType.Bytes;
+                }
             }
 
             return new Google.Cloud.BigQuery.V2.BigQueryParameter(name, type.Value, apiValue);

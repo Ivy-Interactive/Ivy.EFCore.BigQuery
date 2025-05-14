@@ -27,14 +27,18 @@ public class BigQueryParameterCollection : DbParameterCollection
     public BigQueryParameter Add(BigQueryParameter value)
     {
         ArgumentNullException.ThrowIfNull(value);
+        if (value.Collection is not null)
+            throw new InvalidOperationException($"The parameter {value.ParameterName} already belongs to a collection");
 
-        if (Contains(value.ParameterName)) throw new ArgumentException($"Parameter '{value.ParameterName}' already exists in the collection.");
         _parameters.Add(value);
+        value.Collection = this;
+
         return value;
     }
 
     public override int Add(object value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         if (value is not BigQueryParameter parameter)
         {
             throw new ArgumentException($"Value must be of type {nameof(BigQueryParameter)}.", nameof(value));
@@ -96,11 +100,15 @@ public class BigQueryParameterCollection : DbParameterCollection
 
     public override int IndexOf(string parameterName)
     {
-        // Normalize parameter name (ensure starts with @) for lookup
-        var normalizedName = parameterName.StartsWith("@") ? parameterName : "@" + parameterName;
+        if (parameterName is null)
+            return -1;
+
+        if (parameterName.Length > 0 && (parameterName[0] == ':' || parameterName[0] == '@'))
+            parameterName = parameterName.Remove(0, 1);
+
         for (var i = 0; i < _parameters.Count; i++)
         {
-            if (string.Equals(_parameters[i].ParameterName, normalizedName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(_parameters[i].ParameterName, parameterName, StringComparison.OrdinalIgnoreCase))
             {
                 return i;
             }
@@ -110,16 +118,24 @@ public class BigQueryParameterCollection : DbParameterCollection
 
     public override void Insert(int index, object value)
     {
+        ArgumentNullException.ThrowIfNull(value);
+
         if (value is not BigQueryParameter parameter)
         {
             throw new ArgumentException($"Value must be of type {nameof(BigQueryParameter)}.", nameof(value));
         }
+
+        if (parameter.Collection != null)
+            throw new Exception("The parameter already belongs to a collection");
+
         if (Contains(parameter.ParameterName)) throw new ArgumentException($"Parameter '{parameter.ParameterName}' already exists in the collection.");
         _parameters.Insert(index, parameter);
     }
 
     public override void Remove(object value)
     {
+        ArgumentNullException.ThrowIfNull(value);
+
         if (value is not BigQueryParameter parameter) return;
         _parameters.Remove(parameter);
     }
@@ -156,6 +172,7 @@ public class BigQueryParameterCollection : DbParameterCollection
 
     protected override void SetParameter(int index, DbParameter value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         if (value is not BigQueryParameter parameter)
         {
             throw new ArgumentException($"Value must be of type {nameof(BigQueryParameter)}.", nameof(value));
@@ -174,6 +191,7 @@ public class BigQueryParameterCollection : DbParameterCollection
 
     protected override void SetParameter(string parameterName, DbParameter value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         if (value is not BigQueryParameter parameter)
         {
             throw new ArgumentException($"Value must be of type {nameof(BigQueryParameter)}.", nameof(value));

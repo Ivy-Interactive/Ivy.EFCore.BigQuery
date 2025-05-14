@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # dotnet test output
 **/TestResults/
+
+#IDEA
+.idea/
