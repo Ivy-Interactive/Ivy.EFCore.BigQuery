@@ -16,9 +16,9 @@ namespace Ivy.EFCore.BigQuery.Data
         private const string LocationKey = "Location";
         private const string AuthMethodKey = "AuthMethod";
         private const string CredentialsFileKey = "CredentialsFile";
-        private const string TimeoutKey = "Timeout";
-       // private const BigQueryAuthMethod DefaultAuthMethod = BigQueryAuthMethod.ApplicationDefaultCredentials;
-       private const int DefaultTimeout = 15;
+        private const string TimeoutKey = "Timeout"; 
+        private const BigQueryAuthMethod DefaultAuthMethod = BigQueryAuthMethod.ApplicationDefaultCredentials; 
+        private const int DefaultTimeout = 15;
 
 
 
@@ -42,7 +42,7 @@ namespace Ivy.EFCore.BigQuery.Data
         public string ProjectId
         {
             get => GetValueOrDefault<string>(ProjectIdKey, null);
-            set => base[ProjectIdKey] = value; // Let base handle null/empty string storage
+            set => base[ProjectIdKey] = value;
         }
 
         [DisplayName(DefaultDatasetKey)]
@@ -139,7 +139,7 @@ namespace Ivy.EFCore.BigQuery.Data
             }
             else
             {
-                base.Remove(key); // Remove optional key if set to null/empty
+                base.Remove(key);
             }
         }
     }

@@ -1,3 +1,4 @@
+#Todo remove conn string env variable, finally add it
 [CmdletBinding()]
 param(
     [Parameter()]

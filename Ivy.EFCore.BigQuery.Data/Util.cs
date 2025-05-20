@@ -1,10 +1,11 @@
 ﻿using Google.Cloud.BigQuery.V2;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Ivy.EFCore.BigQuery.Data;
 
 public static class Util
 {
-    private static readonly Dictionary<BigQueryDbType, string> ParameterApiToDbType = new Dictionary<BigQueryDbType, string>
+    private static readonly Dictionary<BigQueryDbType, string> ParameterApiToDbType = new()
     {
         { BigQueryDbType.Int64, "INTEGER" },
         { BigQueryDbType.Float64, "FLOAT" },
@@ -23,11 +24,17 @@ public static class Util
         { BigQueryDbType.Json, "JSON" }
     };
 
-    private static readonly Dictionary<string, BigQueryDbType> _nameToTypeMapping = new Dictionary<string, BigQueryDbType>
+    private static readonly Dictionary<string, BigQueryDbType> _nameToTypeMapping = new()
     {
         { "INTEGER", BigQueryDbType.Int64 },
+        { "INT", BigQueryDbType.Int64 },
+        { "SMALLINT", BigQueryDbType.Int64 },
+        { "BIGINT", BigQueryDbType.Int64 },
+        { "TINYINT", BigQueryDbType.Int64 },
+        { "BYTEINT", BigQueryDbType.Int64 },
         { "FLOAT", BigQueryDbType.Float64 },
         { "BOOL", BigQueryDbType.Bool },
+        { "BOOLEAN", BigQueryDbType.Bool },
         { "STRING", BigQueryDbType.String },
         { "BYTES", BigQueryDbType.Bytes },
         { "DATE", BigQueryDbType.Date },
@@ -37,11 +44,20 @@ public static class Util
         { "ARRAY", BigQueryDbType.Array },
         { "STRUCT", BigQueryDbType.Struct },
         { "NUMERIC", BigQueryDbType.Numeric },
+        { "DECIMAL", BigQueryDbType.Numeric },
         { "GEOGRAPHY", BigQueryDbType.Geography },
         { "BIGNUMERIC", BigQueryDbType.BigNumeric },
+        { "BIGDECIMAL", BigQueryDbType.BigNumeric },
         { "JSON", BigQueryDbType.Json }
     };
 
+    public static readonly HashSet<BigQueryDbType> NumericTypes = new()
+    {
+        BigQueryDbType.Int64,
+        BigQueryDbType.Float64,
+        BigQueryDbType.Numeric,
+        BigQueryDbType.BigNumeric
+    };
 
     public static string DbTypeToParameterApiType(BigQueryDbType type) => ParameterApiToDbType[type];
 
@@ -52,5 +68,10 @@ public static class Util
             return type;
         }
         throw new ArgumentException($"Unknown BigQuery type: {typeName}");
+    }
+
+    public static bool IsNumericType(BigQueryDbType type)
+    {
+        return NumericTypes.Contains(type);
     }
 }

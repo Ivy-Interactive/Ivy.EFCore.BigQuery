@@ -284,31 +284,25 @@ namespace Ivy.EFCore.BigQuery.Data
             EnsureNotClosed();
             EnsureHasData();
             ValidateOrdinal(ordinal);
-            var value = _currentRow?[ordinal];
-
-            if (value == null)
-            {
-                throw new InvalidCastException("Cannot cast DBNull.Value to DateTime.");
-            }
-
-            var fieldType = _schema.Fields[ordinal].Type;
+            var value = (_currentRow?[ordinal]) ?? throw new InvalidCastException("Cannot cast DBNull.Value to DateTime.");
+            var fieldType = Util.ParameterApiTypeToDbType(_schema.Fields[ordinal].Type);
 
             try
             {
                 
                 switch (fieldType)
                 {
-                    case "TIMESTAMP":
+                    case BigQueryDbType.Timestamp:
                         if (value is DateTimeOffset dto) return dto.DateTime;
                         if (value is string sTimestamp) return DateTime.Parse(sTimestamp, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
                         break;
 
-                    case "DATETIME":
+                    case BigQueryDbType.DateTime:
                         if (value is DateTime dt) return dt;
                         if (value is string sDateTime) return DateTime.Parse(sDateTime, CultureInfo.InvariantCulture);
                         break;
 
-                    case "DATE":
+                    case BigQueryDbType.Date:
                         if (value is DateTime date) return date.Date;
                         if (value is string sDate) return DateTime.ParseExact(sDate, "yyyy-MM-dd", CultureInfo.InvariantCulture).Date;
                         break;
@@ -323,11 +317,8 @@ namespace Ivy.EFCore.BigQuery.Data
         }
 
 
-        public override char GetChar(int ordinal)
-        {
-            var stringValue = (string)GetValue(ordinal);
-            return stringValue.Length > 0 ? stringValue[0] : throw new InvalidCastException();
-        }
+        public override char GetChar(int ordinal) => GetFieldValue<char>(ordinal);
+
 
         public override string GetString(int ordinal)
         {
@@ -350,6 +341,7 @@ namespace Ivy.EFCore.BigQuery.Data
             ValidateOrdinal(ordinal);
 
             var value = _currentRow?[ordinal];
+            var bqFieldType = Util.ParameterApiTypeToDbType(_schema.Fields[ordinal].Type);
 
             if (value is null or DBNull)
             {
@@ -362,7 +354,8 @@ namespace Ivy.EFCore.BigQuery.Data
 
             if (typeof(T) == typeof(bool))
             {
-                if (value is bool boolValue) return (T)(object)boolValue;
+                if (value is bool boolValue) 
+                    return (T)(object)boolValue;
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type 'System.Boolean'.");
             }
 
@@ -376,12 +369,27 @@ namespace Ivy.EFCore.BigQuery.Data
                 return (T)(object)GetTextReader(ordinal);
             }
 
-            if (value is bool && typeof(T) != typeof(bool) || typeof(T) == typeof(string) && value is not string)
+            if (typeof(T) == typeof(char))
+            {
+                var stringValue = (string)GetValue(ordinal);
+
+                if (bqFieldType != BigQueryDbType.String || stringValue.Length > 1)
+                {
+                    throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type 'System.Char'.");
+                }
+
+                return stringValue.Length > 0 ? (T)(object)stringValue[0] : throw new InvalidCastException("Cannot cast empty string to type 'System.Char'.");
+            }
+
+            if (IsNumericType<T>() && !Util.IsNumericType(bqFieldType)){
+                throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type '{typeof(T)}'.");
+            }            
+
+            if (typeof(T) == typeof(string) && value is not string)
             {
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type '{typeof(T)}'.");
             }
-
-            var bqFieldType = _schema.Fields[ordinal].Type;
+            
             try
             {
                 switch (value)
@@ -399,13 +407,13 @@ namespace Ivy.EFCore.BigQuery.Data
 
                 switch (bqFieldType)
                 {
-                    case "TIMESTAMP" when value is DateTimeOffset dtoValue:
+                    case BigQueryDbType.Timestamp when value is DateTimeOffset dtoValue:
                     {
                         if (typeof(T) == typeof(DateTime)) return (T)(object)dtoValue.DateTime;
                         if (typeof(T) == typeof(DateTimeOffset)) return (T)(object)dtoValue;
                         break;
                     }
-                    case "DATE" or "DATETIME" when value is DateTime dtValue:
+                    case BigQueryDbType.Date or BigQueryDbType.DateTime when value is DateTime dtValue:
                     {
                         if (typeof(T) == typeof(DateTime)) return (T)(object)dtValue;
                         if (typeof(T) == typeof(DateTimeOffset)) return (T)(object)new DateTimeOffset(dtValue);
@@ -420,7 +428,7 @@ namespace Ivy.EFCore.BigQuery.Data
                     if (typeof(T) == typeof(long)) return (T)(object)long.Parse(numericValue.ToString(), CultureInfo.InvariantCulture); // return (T)(object)Convert.ToInt64(decimal.Truncate(intermediate));
                     if (typeof(T) == typeof(string)) return (T)(object)numericValue.ToString();
                 }
-                if (bqFieldType == "BYTES" && value is byte[] bytesValue && typeof(T) == typeof(byte[]))
+                if (bqFieldType == BigQueryDbType.Bytes && value is byte[] bytesValue && typeof(T) == typeof(byte[]))
                 {
                     return (T)(object)bytesValue;
                 }
@@ -744,6 +752,15 @@ namespace Ivy.EFCore.BigQuery.Data
             {
                 throw new InvalidOperationException("No data exists for the row. Invalid attempt to read data when reader is positioned before the first row or after the last row.");
             }
+        }
+
+        bool IsNumericType<T>()
+        {
+            var type = typeof(T);
+            return type == typeof(byte) || type == typeof(sbyte) ||
+                   type == typeof(ushort) || type == typeof(uint) || type == typeof(ulong) ||
+                   type == typeof(short) || type == typeof(int) || type == typeof(long) ||
+                   type == typeof(float) || type == typeof(double) || type == typeof(decimal);
         }
 
         private static Type TableFieldSchemaTypeToNetType(string type, bool isArray)
