@@ -81,7 +81,7 @@ public class SelectValueFixture : DbFactoryFixture, ISelectValueFixture, IDelete
                                                 UInt64 BIGNUMERIC,
                                                 Single FLOAT64,
                                                 `Double` FLOAT64,
-                                                `Decimal` NUMERIC,
+                                                `Decimal` BIGNUMERIC(56,28),
                                                 String STRING,
                                                 Guid STRING,
                                                 `Date` DATE,
@@ -101,9 +101,9 @@ public class SelectValueFixture : DbFactoryFixture, ISelectValueFixture, IDelete
                                                 (0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
                                                 (1, b'', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '', '', NULL, NULL, NULL),
                                                 (2, b'\x00', FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0.0, 0.0000000000000000000000000000, '0', '00000000-0000-0000-0000-000000000000', NULL, NULL, TIME '00:00:00'),
-                                                (3, b'\x11', TRUE, 1, 1, 1, 1, 1, 1, 1, 1, 1.0, 1.0, 0.0000000000000000000000000001, '1', '11111111-1111-1111-1111-111111111111', DATE '1111-11-11', DATETIME '1111-11-11 11:11:11.111', TIME '11:11:11.111'),
-                                                (4, NULL, FALSE, 0, -128, -32768, 0, -2147483648, 0, -9223372036854775808, 0, 1.18e-38, 2.23e-308, 0.000000000000001, NULL, '33221100-5544-7766-9988-aabbccddeeff', DATE '0001-01-01', DATETIME '0001-01-01 00:00:00', TIME '00:00:00'),
-                                                (5, NULL, TRUE, 255, 127, 32767, 65535, 2147483647, 4294967295, 9223372036854775807, BIGNUMERIC '18446744073709551615', 3.40e+38, 1.79e+308, 99999999999999999999.999999999999999, NULL, 'ccddeeff-aabb-8899-7766-554433221100', DATE '9999-12-31', DATETIME '9999-12-31 23:59:59.999', TIME '23:59:59.999999');        
+                                                (3, b'\x11', TRUE, 1, 1, 1, 1, 1, 1, 1, 1, 1.0, 1.0, 1, '1', '11111111-1111-1111-1111-111111111111', DATE '1111-11-11', DATETIME '1111-11-11 11:11:11.111', TIME '11:11:11.111'),
+                                                (4, NULL, FALSE, 0, -128, -32768, 0, -2147483648, 0, -9223372036854775808, 0, 1.18e-38, 2.23e-308, BIGNUMERIC '0.000000000000001', NULL, '33221100-5544-7766-9988-aabbccddeeff', DATE '0001-01-01', DATETIME '0001-01-01 00:00:00', TIME '00:00:00'),
+                                                (5, NULL, TRUE, 255, 127, 32767, 65535, 2147483647, 4294967295, 9223372036854775807, BIGNUMERIC '18446744073709551615', 3.40e+38, 1.79e+308, BIGNUMERIC '99999999999999999999.999999999999999', NULL, 'ccddeeff-aabb-8899-7766-554433221100', DATE '9999-12-31', DATETIME '9999-12-31 23:59:59.999', TIME '23:59:59.999999');        
 
                                               """);
     }

@@ -389,7 +389,7 @@ namespace Ivy.EFCore.BigQuery.Data
             {
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type '{typeof(T)}'.");
             }
-            
+    
             try
             {
                 switch (value)
@@ -428,6 +428,15 @@ namespace Ivy.EFCore.BigQuery.Data
                     if (typeof(T) == typeof(long)) return (T)(object)long.Parse(numericValue.ToString(), CultureInfo.InvariantCulture); // return (T)(object)Convert.ToInt64(decimal.Truncate(intermediate));
                     if (typeof(T) == typeof(string)) return (T)(object)numericValue.ToString();
                 }
+
+                if (value is BigQueryBigNumeric bigNumericValue)
+                {
+                    if (typeof(T) == typeof(decimal)) return (T)(object)bigNumericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
+                    if (typeof(T) == typeof(double)) return (T)(object)double.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture); // return (T)(object)Convert.ToInt64(decimal.Truncate(intermediate));
+                    if (typeof(T) == typeof(string)) return (T)(object)bigNumericValue.ToString();
+                }
+
                 if (bqFieldType == BigQueryDbType.Bytes && value is byte[] bytesValue && typeof(T) == typeof(byte[]))
                 {
                     return (T)(object)bytesValue;
