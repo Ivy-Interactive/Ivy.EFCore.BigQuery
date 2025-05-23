@@ -236,7 +236,12 @@ namespace Ivy.EFCore.BigQuery.Data
                 throw new InvalidOperationException("There are no results");
             }
             ValidateOrdinal(ordinal);
-            
+
+            if (_currentRow?[ordinal] is string strGuid && Guid.TryParse(strGuid, out _))
+            {
+                return typeof(Guid);
+            }
+
             return _fieldTypes[ordinal];
         }
 
@@ -367,6 +372,16 @@ namespace Ivy.EFCore.BigQuery.Data
             if (typeof(T) == typeof(TextReader) || typeof(T) == typeof(StringReader))
             {
                 return (T)(object)GetTextReader(ordinal);
+            }
+
+            if (typeof(T) == typeof(Guid))
+            {
+                var stringValue = (string)GetValue(ordinal);
+                if (string.IsNullOrWhiteSpace(stringValue))
+                {
+                    throw new InvalidCastException($"Cannot cast empty string to type 'System.Guid'.");
+                }
+                return (T)(object)Guid.Parse(stringValue);
             }
 
             if (typeof(T) == typeof(char))
