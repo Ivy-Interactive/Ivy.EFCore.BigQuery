@@ -89,4 +89,3 @@ public sealed class DataReaderTests : DataReaderTestBase<SelectValueFixture>
     {
     }
 }
-
