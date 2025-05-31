@@ -4,7 +4,7 @@ namespace Ivy.EFCore.BigQuery.Data;
 
 public sealed class BigQueryProviderFactory : DbProviderFactory
 {
-    public static readonly BigQueryProviderFactory Instance = new BigQueryProviderFactory();
+    public static readonly BigQueryProviderFactory Instance = new();
 
     private BigQueryProviderFactory()
     {
@@ -25,20 +25,20 @@ public sealed class BigQueryProviderFactory : DbProviderFactory
         return new BigQueryParameter();
     }
 
-
     public override DbConnectionStringBuilder CreateConnectionStringBuilder()
     {
         return new BigQueryConnectionStringBuilder();
     }
-
     
     public override DbCommandBuilder CreateCommandBuilder()
     {
+        // Todo?
         return null;
     }
+
     public override DbDataAdapter CreateDataAdapter()
     {
-        // return new BigQueryDataAdapter();
+        // Todo?
         return null;
     }
 
@@ -46,6 +46,5 @@ public sealed class BigQueryProviderFactory : DbProviderFactory
 
     public override bool CanCreateCommandBuilder => false; 
 
-    // public override bool CanCreateDataSourceEnumerator => false;
-
+    public override bool CanCreateDataSourceEnumerator => false;
 }
