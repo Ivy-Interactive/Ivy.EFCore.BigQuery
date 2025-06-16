@@ -3,17 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35431.28
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ivy.EFCore.BigQuery", "BigQuery.EFCore\Ivy.EFCore.BigQuery.csproj", "{6AEC0BE3-E2BB-4EF8-838A-22F1E1DBDE66}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery.FunctionalTests", "test\BigQuery.EFCore.FunctionalTests\Ivy.EFCore.BigQuery.FunctionalTests.csproj", "{91A78307-EE64-47F0-8ECC-EF8ADD166F1A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ivy.EFCore.BigQuery.Sample", "BigQuery.EFCore.Sample\Ivy.EFCore.BigQuery.Sample.csproj", "{887A3737-5915-45E4-9BDC-73D4599E45A5}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{43CB8F62-5CD3-445E-81D3-E8D2BDFAF07D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery.FunctionalTests", "tests\BigQuery.EFCore.FunctionalTests\Ivy.EFCore.BigQuery.FunctionalTests.csproj", "{91A78307-EE64-47F0-8ECC-EF8ADD166F1A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.Data.BigQuery.Conformance.Tests", "test\Ivy.EFCore.BigQuery.Conformance.Tests\Ivy.Data.BigQuery.Conformance.Tests.csproj", "{5A66B318-D2F6-4653-9ABA-15EA6911CE84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery.Data", "Ivy.EFCore.BigQuery.Data\Ivy.EFCore.BigQuery.Data.csproj", "{067D07FB-5130-4AC0-95A2-B56900CA7378}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{43CB8F62-5CD3-445E-81D3-E8D2BDFAF07D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.Data.BigQuery", "src\Ivy.Data.BigQuery\Ivy.Data.BigQuery.csproj", "{E8C032DD-00CB-2725-FABF-9272E55CFAF0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery.Data.Conformance.Tests", "tests\Ivy.EFCore.BigQuery.Conformance.Tests\Ivy.EFCore.BigQuery.Data.Conformance.Tests.csproj", "{5A66B318-D2F6-4653-9ABA-15EA6911CE84}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery", "src\Ivy.EFCore.BigQuery\Ivy.EFCore.BigQuery.csproj", "{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,26 +21,22 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{6AEC0BE3-E2BB-4EF8-838A-22F1E1DBDE66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6AEC0BE3-E2BB-4EF8-838A-22F1E1DBDE66}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6AEC0BE3-E2BB-4EF8-838A-22F1E1DBDE66}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6AEC0BE3-E2BB-4EF8-838A-22F1E1DBDE66}.Release|Any CPU.Build.0 = Release|Any CPU
-		{887A3737-5915-45E4-9BDC-73D4599E45A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{887A3737-5915-45E4-9BDC-73D4599E45A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{887A3737-5915-45E4-9BDC-73D4599E45A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{887A3737-5915-45E4-9BDC-73D4599E45A5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{91A78307-EE64-47F0-8ECC-EF8ADD166F1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{91A78307-EE64-47F0-8ECC-EF8ADD166F1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91A78307-EE64-47F0-8ECC-EF8ADD166F1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91A78307-EE64-47F0-8ECC-EF8ADD166F1A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{067D07FB-5130-4AC0-95A2-B56900CA7378}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{067D07FB-5130-4AC0-95A2-B56900CA7378}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{067D07FB-5130-4AC0-95A2-B56900CA7378}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{067D07FB-5130-4AC0-95A2-B56900CA7378}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5A66B318-D2F6-4653-9ABA-15EA6911CE84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5A66B318-D2F6-4653-9ABA-15EA6911CE84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A66B318-D2F6-4653-9ABA-15EA6911CE84}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A66B318-D2F6-4653-9ABA-15EA6911CE84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8C032DD-00CB-2725-FABF-9272E55CFAF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8C032DD-00CB-2725-FABF-9272E55CFAF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8C032DD-00CB-2725-FABF-9272E55CFAF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8C032DD-00CB-2725-FABF-9272E55CFAF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +44,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{91A78307-EE64-47F0-8ECC-EF8ADD166F1A} = {43CB8F62-5CD3-445E-81D3-E8D2BDFAF07D}
 		{5A66B318-D2F6-4653-9ABA-15EA6911CE84} = {43CB8F62-5CD3-445E-81D3-E8D2BDFAF07D}
+		{E8C032DD-00CB-2725-FABF-9272E55CFAF0} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63227D38-18A6-4921-B591-A163045763F0}
