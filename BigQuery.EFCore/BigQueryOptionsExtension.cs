@@ -32,7 +32,10 @@ namespace Ivy.EFCore.BigQuery
 
         // public void ApplyServices(IServiceCollection services) { }
 
-        public void Validate(IDbContextOptions options) { }
+        public override void Validate(IDbContextOptions options)
+        {
+            base.Validate(options);
+        }
 
         protected override RelationalOptionsExtension Clone()
         => new BigQueryOptionsExtension(this);
@@ -66,12 +69,5 @@ namespace Ivy.EFCore.BigQuery
                 return other.Extension is BigQueryOptionsExtension ext && Extension.Equals(ext);
             }
         }
-
-
     }
-
-
-
-
-
 }
