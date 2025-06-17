@@ -5,28 +5,38 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
 {
     internal class BigQuerySqlGenerationHelper : RelationalSqlGenerationHelper
     {
-        private string _escapeIdentifier(string identifier)
-           => identifier.Replace("`", "``");
+        //private string _escapeIdentifier(string identifier) => identifier.Replace("`", "``");
 
         public BigQuerySqlGenerationHelper(RelationalSqlGenerationHelperDependencies dependencies) : base(dependencies)
-        {            
+        {
         }
 
-        // BigQuery uses backticks instead of quotes https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical
-        public override string DelimitIdentifier(string name)
-            => $"`{name}`";
+        // https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical
+        ///
+        public override string DelimitIdentifier(string name) => $"`{name.Replace("`", "``")}`";
 
-        //Generates the delimited SQL representation of an identifier(column name, table name, etc.)
-        public override string DelimitIdentifier(string? name, string? schema) 
-            => schema == null
-                ? DelimitIdentifier(name)
-                : $"{DelimitIdentifier(schema)}.{DelimitIdentifier(name)}";
+        public override void DelimitIdentifier(StringBuilder builder, string identifier)
+        {
+            builder.Append('`');
+            builder.Append(identifier.Replace("`", "``"));
+            builder.Append('`');
+        }
+        
+        //public override string DelimitIdentifier(string? name, string? schema)
+        //    => schema == null
+        //        ? DelimitIdentifier(name)
+        //        : $"{DelimitIdentifier(schema)}.{DelimitIdentifier(name)}";
 
 
         public override void GenerateParameterName(StringBuilder builder, string name)
             => builder.Append('@').Append(name);
 
-        //like GO in TSQL
-        public override string BatchTerminator => "";
+        public override string StatementTerminator => ";" + Environment.NewLine;
+
+        public override string BatchTerminator => ""; //todo test
+
+        public override string StartTransactionStatement
+            => "BEGIN TRANSACTION" + StatementTerminator;
+
     }
 }

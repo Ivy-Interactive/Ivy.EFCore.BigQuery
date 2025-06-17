@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Ivy.Data.BigQuery
 {
-    internal class BigQueryConnectionStringBuilder : DbConnectionStringBuilder
+    public class BigQueryConnectionStringBuilder : DbConnectionStringBuilder
     {
         private const string ProjectIdKey = "ProjectId";
         private const string DefaultDatasetKey = "DefaultDataset";
@@ -19,8 +19,6 @@ namespace Ivy.Data.BigQuery
         private const string TimeoutKey = "Timeout"; 
         private const BigQueryAuthMethod DefaultAuthMethod = BigQueryAuthMethod.ApplicationDefaultCredentials; 
         private const int DefaultTimeout = 15;
-
-
 
         public BigQueryConnectionStringBuilder()
         {
@@ -128,7 +126,6 @@ namespace Ivy.Data.BigQuery
             {
                 return defaultValue;
             }
-            return defaultValue;
         }
 
         private void SetOptionalStringValue(string key, string value)

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.Data.BigQuery", "src\Iv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery", "src\Ivy.EFCore.BigQuery\Ivy.EFCore.BigQuery.csproj", "{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ivy.EFCore.BigQuery.Sample", "src\Ivy.EFCore.BigQuery.Sample\Ivy.EFCore.BigQuery.Sample.csproj", "{64C9408A-C1A2-80E1-D3E3-9627642A7B45}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,10 @@ Global
 		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64C9408A-C1A2-80E1-D3E3-9627642A7B45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64C9408A-C1A2-80E1-D3E3-9627642A7B45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64C9408A-C1A2-80E1-D3E3-9627642A7B45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64C9408A-C1A2-80E1-D3E3-9627642A7B45}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +52,7 @@ Global
 		{5A66B318-D2F6-4653-9ABA-15EA6911CE84} = {43CB8F62-5CD3-445E-81D3-E8D2BDFAF07D}
 		{E8C032DD-00CB-2725-FABF-9272E55CFAF0} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7EE15025-CC93-5E11-CBEE-FBAAEFA0010A} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{64C9408A-C1A2-80E1-D3E3-9627642A7B45} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63227D38-18A6-4921-B591-A163045763F0}

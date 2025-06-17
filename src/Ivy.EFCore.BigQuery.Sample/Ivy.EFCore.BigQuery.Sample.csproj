@@ -17,9 +17,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\BigQuery.EFCore\Ivy.EFCore.BigQuery.csproj" />
-    <ProjectReference Include="..\Ivy.EFCore.BigQuery.Data\Ivy.EFCore.BigQuery.Data.csproj" />
+  <ItemGroup>   
+    <ProjectReference Include="..\Ivy.EFCore.BigQuery\Ivy.EFCore.BigQuery.csproj" />
   </ItemGroup>
 
 </Project>

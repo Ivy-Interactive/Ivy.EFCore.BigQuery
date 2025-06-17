@@ -1,6 +1,7 @@
 ﻿using Ivy.EFCore.BigQuery.Extensions;
 using Ivy.EFCore.BigQuery.Scaffolding.Internal;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Design.Internal;
 using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,10 +15,11 @@ namespace Ivy.EFCore.BigQuery.Design.Internal
         {
             serviceCollection.AddEntityFrameworkBigQuery();
             new EntityFrameworkRelationalDesignServicesBuilder(serviceCollection)
-            //serviceCollection.AddEntityFrameworkRelational();
-           .TryAdd<IDatabaseModelFactory, BigQueryDatabaseModelFactory>()
-           .TryAdd<IProviderConfigurationCodeGenerator, BigQueryConfigurationCodeGenerator>()
-           .TryAddCoreServices()
+                //.TryAdd<ICSharpRuntimeAnnotationCodeGenerator, BigQueryCSharpRuntimeAnnotationCodeGenerator>()
+                //.TryAdd<IAnnotationCodeGenerator,BigQueryAnnotationCodeGenerator>()
+                .TryAdd<IDatabaseModelFactory, BigQueryDatabaseModelFactory>()
+                .TryAdd<IProviderConfigurationCodeGenerator, BigQueryCodeGenerator>()
+                .TryAddCoreServices()
            ;
         }
     }
