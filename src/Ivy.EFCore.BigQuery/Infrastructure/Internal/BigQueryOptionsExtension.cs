@@ -29,38 +29,38 @@ namespace Ivy.EFCore.BigQuery.Infrastructure.Internal
         {
         }
 
-        //public override RelationalOptionsExtension WithConnectionString(string? connectionString)
-        //{
-        //    var clone = (BigQueryOptionsExtension)base.WithConnectionString(connectionString);
+        public override RelationalOptionsExtension WithConnectionString(string? connectionString)
+        {
+            var clone = (BigQueryOptionsExtension)base.WithConnectionString(connectionString);
 
-        //    return clone;
-        //}
+            return clone;
+        }
 
         public override void Validate(IDbContextOptions options)
         {
             base.Validate(options);
 
-            if (string.IsNullOrWhiteSpace(ConnectionString))
-            {
-                throw new InvalidOperationException(
-                    $"No connection string was specified. Configure the BigQuery connection string by calling UseBigQuery() on the options builder.");
-            }
-            try
-            {
-                var builder = new BigQueryConnectionStringBuilder(ConnectionString);
-                if (string.IsNullOrWhiteSpace(builder.ProjectId))
-                {
-                    throw new InvalidOperationException("The connection string must include a 'ProjectId'.");
-                }
-                if (builder.AuthMethod == BigQueryConnectionStringBuilder.BigQueryAuthMethod.JsonCredentials && string.IsNullOrWhiteSpace(builder.CredentialsFile))
-                {
-                    throw new InvalidOperationException("The connection string must include a 'CredentialsFile' when using 'JsonCredentials' authentication method.");
-                }
-            }
-            catch (ArgumentException ex)
-            {
-                throw new InvalidOperationException($"The connection string is invalid: {ex.Message}", ex);
-            }
+            //if (string.IsNullOrWhiteSpace(ConnectionString))
+            //{
+            //    throw new InvalidOperationException(
+            //        $"No connection string was specified. Configure the BigQuery connection string by calling UseBigQuery() on the options builder.");
+            //}
+            //try
+            //{
+            //    var builder = new BigQueryConnectionStringBuilder(ConnectionString);
+            //    if (string.IsNullOrWhiteSpace(builder.ProjectId))
+            //    {
+            //        throw new InvalidOperationException("The connection string must include a 'ProjectId'.");
+            //    }
+            //    if (builder.AuthMethod == BigQueryConnectionStringBuilder.BigQueryAuthMethod.JsonCredentials && string.IsNullOrWhiteSpace(builder.CredentialsFile))
+            //    {
+            //        throw new InvalidOperationException("The connection string must include a 'CredentialsFile' when using 'JsonCredentials' authentication method.");
+            //    }
+            //}
+            //catch (ArgumentException ex)
+            //{
+            //    throw new InvalidOperationException($"The connection string is invalid: {ex.Message}", ex);
+            //}
         }
 
         protected override RelationalOptionsExtension Clone()
@@ -95,9 +95,9 @@ namespace Ivy.EFCore.BigQuery.Infrastructure.Internal
                 var csb = new BigQueryConnectionStringBuilder(Extension.ConnectionString);
                 debugInfo["BigQueryExtension:ProjectId"] = csb.ProjectId ?? "(none)";
                 debugInfo["BigQueryExtension:AuthMethod"] = csb.AuthMethod.ToString();
-                if (!string.IsNullOrWhiteSpace(csb.DefaultDataset))
+                if (!string.IsNullOrWhiteSpace(csb.DefaultDatasetId))
                 {
-                    debugInfo["BigQueryExtension:DefaultDataset"] = csb.DefaultDataset;
+                    debugInfo["BigQueryExtension:DefaultDatasetId"] = csb.DefaultDatasetId;
                 }
             }
 

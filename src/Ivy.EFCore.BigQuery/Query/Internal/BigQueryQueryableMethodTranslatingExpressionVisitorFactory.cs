@@ -3,23 +3,23 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Ivy.EFCore.BigQuery.Query.Internal
 {
-    public class BigQueryQueryableMethodTranslatingExpressionVisitorFactory(
-        QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
-        ISqlExpressionFactory sqlExpressionFactory,
-        ITypeMappingSource typeMappingSource,
-        IMemberTranslatorProvider memberTranslatorProvider,
-        IMethodCallTranslatorProvider methodCallTranslatorProvider)
-        : IQueryableMethodTranslatingExpressionVisitorFactory
+    public class BigQueryQueryableMethodTranslatingExpressionVisitorFactory : IQueryableMethodTranslatingExpressionVisitorFactory
     {
-        protected virtual QueryableMethodTranslatingExpressionVisitorDependencies Dependencies { get; } = dependencies;
+        public BigQueryQueryableMethodTranslatingExpressionVisitorFactory(
+            QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
+            RelationalQueryableMethodTranslatingExpressionVisitorDependencies relationalDependencies)
+        {
+            Dependencies = dependencies;
+            RelationalDependencies = relationalDependencies;
+        }
+
+        protected virtual QueryableMethodTranslatingExpressionVisitorDependencies Dependencies { get; }
+        public RelationalQueryableMethodTranslatingExpressionVisitorDependencies RelationalDependencies { get; }
 
         public virtual QueryableMethodTranslatingExpressionVisitor Create(QueryCompilationContext queryCompilationContext)
-        => new BigQueryQueryableMethodTranslatingExpressionVisitor(
-            dependencies,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-            queryCompilationContext,
-            sqlExpressionFactory,
-            typeMappingSource,
-            memberTranslatorProvider,
-            methodCallTranslatorProvider);
+            => new BigQueryQueryableMethodTranslatingExpressionVisitor(
+           Dependencies,
+           RelationalDependencies,
+           (RelationalQueryCompilationContext)queryCompilationContext);
     }
 }

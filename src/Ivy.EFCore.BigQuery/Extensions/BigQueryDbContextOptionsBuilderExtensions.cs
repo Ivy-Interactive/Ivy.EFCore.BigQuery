@@ -13,10 +13,7 @@ namespace Ivy.EFCore.BigQuery.Extensions
             this DbContextOptionsBuilder optionsBuilder,
             string connectionString,
             Action<BigQueryDbContextOptionsBuilder>? bigQueryOptionsAction = null)
-        {
-            // Check.NotNull(optionsBuilder, nameof(optionsBuilder)); // Use EF Core's internal checks or your own
-            // Check.NotEmpty(connectionString, nameof(connectionString));
-
+        {        
             var extension = optionsBuilder.Options.FindExtension<BigQueryOptionsExtension>()
                             ?? new BigQueryOptionsExtension();
 

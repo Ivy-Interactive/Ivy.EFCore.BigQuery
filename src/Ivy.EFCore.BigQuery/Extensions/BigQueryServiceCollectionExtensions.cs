@@ -2,6 +2,7 @@
 using Ivy.EFCore.BigQuery.Diagnostics;
 using Ivy.EFCore.BigQuery.Infrastructure;
 using Ivy.EFCore.BigQuery.Infrastructure.Internal;
+using Ivy.EFCore.BigQuery.Migrations;
 using Ivy.EFCore.BigQuery.Query.Internal;
 using Ivy.EFCore.BigQuery.Storage.Internal;
 using Ivy.EFCore.BigQuery.Update.Internal;
@@ -48,16 +49,17 @@ namespace Ivy.EFCore.BigQuery.Extensions
               .TryAdd<IModificationCommandBatchFactory, BigQueryModificationCommandBatchFactory>()
               .TryAdd<IRelationalDatabaseCreator, BigQueryDatabaseCreator>()
               //.TryAdd<IHistoryRepository, BigQueryHistoryRepository>() //todo
-              .TryAdd<IQueryContextFactory, BigQueryQueryContextFactory>()
               .TryAdd<IRelationalConnection>(p => p.GetRequiredService<IBigQueryRelationalConnection>())
-              //.TryAdd<IMigrationsSqlGenerator, BigQueryMigrationsSqlGenerator>() //todo
-              .TryAdd<IMemberTranslatorProvider, BigQueryMemberTranslatorProvider>()
+              .TryAdd<IMigrationsSqlGenerator, BigQueryMigrationsSqlGenerator>()
+              //.TryAdd<IMemberTranslatorProvider, BigQueryMemberTranslatorProvider>() //todo
+              .TryAdd<IMemberTranslatorProvider, RelationalMemberTranslatorProvider>() //todo remove
               .TryAdd<IUpdateSqlGenerator, BigQueryUpdateSqlGenerator>()
               .TryAdd<ISqlExpressionFactory, BigQuerySqlExpressionFactory>()
               .TryAdd<IMethodCallTranslatorProvider, BigQueryMethodCallTranslatorProvider>()
               //https://learn.microsoft.com/en-us/dotnet/framework/data/adonet/ef/language-reference/method-based-query-syntax-examples-aggregate-operators
               //.TryAdd<IAggregateMethodCallTranslatorProvider, BigQueryAggregateMethodCallTranslatorProvider>() //todo
               .TryAdd<IQuerySqlGeneratorFactory, BigQueryQuerySqlGeneratorFactory>()
+              .TryAdd<IExecutionStrategyFactory, BigQueryExecutionStrategyFactory>()
               .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, BigQueryQueryableMethodTranslatingExpressionVisitorFactory>()
               .TryAddProviderSpecificServices(
                   s =>

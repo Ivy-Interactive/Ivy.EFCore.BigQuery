@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Ivy.EFCore.BigQuery.Query.Internal
 {
-    internal class BigQueryQuerySqlGenerator : QuerySqlGenerator
+    public class BigQueryQuerySqlGenerator : QuerySqlGenerator
     {
         public BigQueryQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies) : base(dependencies)
         {
@@ -22,59 +22,26 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
             return base.VisitExtension(extensionExpression);
         }
 
-        protected override void GenerateTop(SelectExpression selectExpression)
+        //https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_list
+        protected override Expression VisitSelect(SelectExpression selectExpression)
         {
-            base.GenerateTop(selectExpression);
+            return base.VisitSelect(selectExpression);
         }
 
-        
 
-        //https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_list
-        //protected override Expression VisitSelect(SelectExpression selectExpression)
+        //protected override Expression VisitTable(TableExpression tableExpression)
         //{
-        //    Sql.Append("SELECT ");
 
-        //    if (selectExpression.IsDistinct)
-        //    {
-        //        Sql.Append("DISTINCT ");
-        //    }
+        //    Sql.Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(tableExpression.Name))
+        //       .Append(" AS ")
+        //       .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(tableExpression.Alias));
 
-        //    // Process Projections
-        //    for (int i = 0; i < selectExpression.Projection.Count; i++)
-        //    {
-        //        if (i > 0)
-        //        {
-        //            Sql.Append(", ");
-        //        }
-        //        Visit(selectExpression.Projection[i]);
-        //    }
 
-        //    Sql.Append(" FROM ");
-        //    Visit(selectExpression.Tables[0]); // Handle FROM clause
+        //    // Sql.Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(tableExpression.Schema))
+        //    //    .Append('.')
+        //    //    .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(tableExpression.Name))
 
-        //    // Process WHERE clause
-        //    if (selectExpression.Predicate != null)
-        //    {
-        //        Sql.Append(" WHERE ");
-        //        Visit(selectExpression.Predicate);
-        //    }
-
-        //    // Process ORDER BY
-        //    if (selectExpression.Orderings.Count > 0)
-        //    {
-        //        Sql.Append(" ORDER BY ");
-        //        for (int i = 0; i < selectExpression.Orderings.Count; i++)
-        //        {
-        //            if (i > 0)
-        //            {
-        //                Sql.Append(", ");
-        //            }
-        //            Visit(selectExpression.Orderings[i].Expression);
-        //            Sql.Append(selectExpression.Orderings[i].IsAscending ? " ASC" : " DESC");
-        //        }
-        //    }
-
-        //    return selectExpression;
+        //    return tableExpression;
         //}
 
         protected override void GenerateLimitOffset(SelectExpression selectExpression)

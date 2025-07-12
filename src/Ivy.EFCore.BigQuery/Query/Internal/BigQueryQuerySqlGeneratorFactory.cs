@@ -1,16 +1,23 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Ivy.EFCore.BigQuery.Query.Internal
 {
-    internal class BigQueryQuerySqlGeneratorFactory : IQuerySqlGeneratorFactory
+    public class BigQueryQuerySqlGeneratorFactory : IQuerySqlGeneratorFactory
     {
-        private readonly QuerySqlGeneratorDependencies _dependencies;
 
         public BigQueryQuerySqlGeneratorFactory(QuerySqlGeneratorDependencies dependencies)
         {
-            _dependencies = dependencies;
+            Dependencies = dependencies;
         }
 
-        public virtual QuerySqlGenerator Create() => new BigQueryQuerySqlGenerator(_dependencies);
+        protected virtual QuerySqlGeneratorDependencies Dependencies { get; }
+
+        public virtual QuerySqlGenerator Create()
+            => new BigQueryQuerySqlGenerator(Dependencies);
     }
 }

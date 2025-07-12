@@ -4,5 +4,5 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal;
 
 public interface IBigQueryRelationalConnection : IRelationalConnection
 {
-    IBigQueryRelationalConnection CreateMasterConnection();
+    IBigQueryRelationalConnection CreateAdminConnection();
 }
