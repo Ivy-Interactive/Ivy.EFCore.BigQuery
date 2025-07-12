@@ -1,32 +1,25 @@
-﻿using Castle.Core.Logging;
-using Ivy.EFCore.BigQuery.Extensions;
-using Microsoft.EntityFrameworkCore.TestUtilities;
+﻿using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Ivy.EFCore.BigQuery.Extensions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
 {
-    //public class BigQueryTestStoreFactory : ITestStoreFactory
-    //{
-    //    public static BigQueryTestStoreFactory Instance { get; } = new();
+    public class BigQueryTestStoreFactory() : RelationalTestStoreFactory
+    {
+        public static BigQueryTestStoreFactory Instance { get; } = new();
 
+        public override TestStore Create(string storeName)
+            => new BigQueryTestStore(storeName, shared: false);
 
-    //    protected BigQueryTestStoreFactory()
-    //    {
-    //    }
+        public override TestStore GetOrCreate(string storeName)
+            => new BigQueryTestStore(storeName, shared: true);
 
-    //    public IServiceCollection AddProviderServices(IServiceCollection serviceCollection)
-    //        => serviceCollection
-    //        .AddEntityFrameworkBigQuery()
-    //        //.AddSingleton<ILoggerFactory>(new TestSqlLoggerFactory())
-    //        ;
-
-    //    public TestStore Create(string storeName) => {};// BigQueryTestStore.Create(storeName);
-
-    //    public ListLoggerFactory CreateListLoggerFactory(Func<string, bool> shouldLogCategory)
-    //    => new TestSqlLoggerFactory(shouldLogCategory);
-    //    //Todo should I make a new sqlloggerfactory? https://github.com/dotnet/efcore/blob/main/test/EFCore.Cosmos.FunctionalTests/TestUtilities/TestSqlLoggerFactory.cs#L14
-
-    //    public TestStore GetOrCreate(string storeName)
-    //     => BigQueryTestStore.GetOrCreate(storeName);
-    //}
+        public override IServiceCollection AddProviderServices(IServiceCollection serviceCollection)
+            => serviceCollection.AddEntityFrameworkBigQuery();
+    }
 }
