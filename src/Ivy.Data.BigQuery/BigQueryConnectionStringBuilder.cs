@@ -12,7 +12,7 @@ namespace Ivy.Data.BigQuery
     public class BigQueryConnectionStringBuilder : DbConnectionStringBuilder
     {
         private const string ProjectIdKey = "ProjectId";
-        private const string DefaultDatasetKey = "DefaultDataset";
+        private const string DefaultDatasetIdKey = "DefaultDatasetId";
         private const string LocationKey = "Location";
         private const string AuthMethodKey = "AuthMethod";
         private const string CredentialsFileKey = "CredentialsFile";
@@ -43,12 +43,12 @@ namespace Ivy.Data.BigQuery
             set => base[ProjectIdKey] = value;
         }
 
-        [DisplayName(DefaultDatasetKey)]
+        [DisplayName(DefaultDatasetIdKey)]
         [Description("The default Google BigQuery Dataset ID for unqualified table names (Optional).")]
-        public string DefaultDataset
+        public string DefaultDatasetId
         {
-            get => GetValueOrDefault<string>(DefaultDatasetKey, null);
-            set => SetOptionalStringValue(DefaultDatasetKey, value);
+            get => GetValueOrDefault<string>(DefaultDatasetIdKey, null);
+            set => SetOptionalStringValue(DefaultDatasetIdKey, value);
         }
 
         [DisplayName(LocationKey)]
