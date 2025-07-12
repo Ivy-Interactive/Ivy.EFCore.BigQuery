@@ -1,6 +1,6 @@
 # Ivy.EFCore.BigQuery
 
-## Running Tests
+## ADO.NET provider tests
 
 The fastest way is to run the powershell script (results saved in TestResults folder):
 
@@ -15,3 +15,7 @@ Run with your own BigQuery project by setting `BQ_ADO_CONN_STRING` environment v
 Connection string format:
 
 ```AuthMethod=ApplicationDefaultCredentials;ProjectId=your-project-id;DefaultDatasetId=ado_tests```
+
+## EFCore provider tests
+
+Set the `BQ_EFCORE_TEST_CONN_STRING` environment variable to your connection string.
