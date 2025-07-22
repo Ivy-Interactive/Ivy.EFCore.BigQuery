@@ -30,6 +30,11 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestModels.Northwind
                 b.Property(o => o.OrderDate).HasColumnType("TIMESTAMP");
             });
 
+            modelBuilder.Entity<Customer>(b =>
+            {
+                b.ToTable("Customers");
+            });
+
 
             //modelBuilder.Entity<CustomerQuery>().ToSqlQuery(
             //    "SELECT * FROM `Customers`"

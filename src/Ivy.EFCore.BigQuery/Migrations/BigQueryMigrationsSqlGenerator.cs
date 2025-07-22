@@ -1,5 +1,6 @@
 ﻿using Ivy.EFCore.BigQuery.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using System;
@@ -36,6 +37,59 @@ namespace Ivy.EFCore.BigQuery.Migrations
             }
 
             base.Generate(operation, model, builder);
+        }
+
+
+
+        //todo MigrationBuilder.CreateTable constraints Action<CreateTableBuilder<TColumns>>  687e6ac7-f648-8005-9a0b-07806afce8aa
+        //\Extensions\TableBuilderExtensions public static CreateTableBuilder<TColumns> IsCreateOrReplace<TColumns>(
+        //builder.Annotation("BigQuery:CreateOrReplace", createOrReplace);
+        //Extensions\MetadataExtensions\IndexExtensions.cs
+
+        protected override void PrimaryKeyConstraint(
+        AddPrimaryKeyOperation operation,
+        IModel? model,
+        MigrationCommandListBuilder builder)
+        {
+            if (operation.Name != null)
+            {
+                builder
+                    .Append("CONSTRAINT ")
+                    .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Name))
+                    .Append(" ");
+            }
+
+            builder
+                .Append("PRIMARY KEY ");
+
+            IndexTraits(operation, model, builder);
+
+            builder.Append("(")
+                .Append(ColumnList(operation.Columns))
+                .Append(")");
+
+            IndexOptions(operation, model, builder);
+        }
+
+        protected override void ColumnDefinition(
+            string? schema,
+            string table,
+            string name,
+            ColumnOperation operation,
+            IModel? model,
+            MigrationCommandListBuilder builder)
+        {
+            var columnType = Dependencies.TypeMappingSource.FindMapping(operation.ClrType)!.StoreType;
+
+            builder
+                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(name))
+                .Append(" ")
+                .Append(columnType);
+
+            if (operation.IsNullable == false)
+            {
+                builder.Append(" NOT NULL");
+            }
         }
 
         /// <inheritdoc/>
