@@ -63,7 +63,7 @@ namespace Ivy.Data.BigQuery
         /// </summary>
         public override int ConnectionTimeout => _connectionTimeoutSeconds;
 
-        public override string Database => _projectId ?? string.Empty;
+        public override string Database => _defaultDatasetId ?? string.Empty;
 
         public override ConnectionState State => _state;
 
