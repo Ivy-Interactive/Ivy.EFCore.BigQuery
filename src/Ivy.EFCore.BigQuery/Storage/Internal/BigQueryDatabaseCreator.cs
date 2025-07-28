@@ -1,8 +1,8 @@
-﻿using Google;
+using Google;
 using Ivy.Data.BigQuery;
-using Ivy.EFCore.BigQuery.Migrations.Operations;
-using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
+using Ivy.EFCore.BigQuery.Migrations.Operations;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal
 {
@@ -13,14 +13,14 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
 
         public BigQueryDatabaseCreator(
             RelationalDatabaseCreatorDependencies dependencies,
-            IBigQueryRelationalConnection connection,
-            IRawSqlCommandBuilder rawSqlCommandBuilder)
+            IBigQueryRelationalConnection connection, IRawSqlCommandBuilder rawSqlCommandBuilder)
             : base(dependencies)
         {
             _connection = connection;
             _rawSqlCommandBuilder = rawSqlCommandBuilder;
         }
 
+        /// <inheritdoc/>
         public override void Create()
         {
             var datasetId = GetRequiredDatasetId();
@@ -30,66 +30,77 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
             Dependencies.MigrationCommandExecutor.ExecuteNonQuery(commands, _connection);
         }
 
+        /// <inheritdoc/>
         public override async Task CreateAsync(CancellationToken cancellationToken = default)
         {
             var datasetId = GetRequiredDatasetId();
-            var operations = new[] { new BigQueryCreateDatasetOperation() { Name = datasetId } };
+            var operations = new[] { new BigQueryCreateDatasetOperation { Name = datasetId } };
             var commands = Dependencies.MigrationsSqlGenerator.Generate(operations);
 
             await Dependencies.MigrationCommandExecutor.ExecuteNonQueryAsync(commands, _connection, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
         public override void Delete()
         {
             var datasetId = GetRequiredDatasetId();
-            var operations = new[] { new BigQueryDropDatasetOperation { Name = datasetId } };
+            var operations = new[] { new BigQueryDropDatasetOperation { Name = datasetId, Behavior = BigQueryDropDatasetOperation.BigQueryDropDatasetBehavior.Cascade } };
             var commands = Dependencies.MigrationsSqlGenerator.Generate(operations);
 
-            try
+            for (var i = 0; i < 5; i++)
             {
-                Dependencies.MigrationCommandExecutor.ExecuteNonQuery(commands, _connection);
-            }
-            catch (GoogleApiException ex) when (IsDoesNotExist(ex))
-            {
+                try
+                {
+                    Dependencies.MigrationCommandExecutor.ExecuteNonQuery(commands, _connection);
+                    return;
+                }
+                catch (GoogleApiException ex) when (ex.Error?.Code == 400 && ex.Error.Message.Contains("dataset is still in use"))
+                {
+                    Thread.Sleep(1000);
+                }
+                catch (GoogleApiException ex) when (IsDoesNotExist(ex))
+                {
+                    return;
+                }
             }
         }
 
+        /// <inheritdoc/>
         public override async Task DeleteAsync(CancellationToken cancellationToken = default)
         {
             var datasetId = GetRequiredDatasetId();
-            var operations = new[] { new BigQueryDropDatasetOperation { Name = datasetId } };
+            var operations = new[] { new BigQueryDropDatasetOperation { Name = datasetId, Behavior = BigQueryDropDatasetOperation.BigQueryDropDatasetBehavior.Cascade } };
             var commands = Dependencies.MigrationsSqlGenerator.Generate(operations);
 
             try
             {
                 await Dependencies.MigrationCommandExecutor.ExecuteNonQueryAsync(commands, _connection, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
+                return;
+            }
+            catch (GoogleApiException ex) when (ex.Error?.Code == 400 && ex.Error.Message.Contains("dataset is still in use"))
+            {
+                await Task.Delay(1000, cancellationToken);
             }
             catch (GoogleApiException ex) when (IsDoesNotExist(ex))
             {
+                return;
             }
+
         }
 
+        /// <inheritdoc/>
         public override bool Exists()
         {
             try
             {
-                var datasetId = GetRequiredDatasetId();
-                var projectId = GetRequiredProjectId();
-                var sql = $"SELECT 1 FROM `{projectId}`.`{datasetId}`.INFORMATION_SCHEMA.TABLES LIMIT 1";
-
+                using var command = CreateExistsCommand();
                 _connection.Open();
-                _rawSqlCommandBuilder.Build(sql).ExecuteNonQuery(
-                    new RelationalCommandParameterObject(_connection, null, null, null, null));
-
-                return true;
+                var result = command.ExecuteScalar();
+                return result != null && (long)result > 0;
             }
-            catch (GoogleApiException ex) when (IsDoesNotExist(ex))
-            {
-                return false;
-            }
-            catch (Exception)
+            catch (BigQueryException)
             {
                 return false;
             }
@@ -102,26 +113,17 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
             }
         }
 
+        /// <inheritdoc/>
         public override async Task<bool> ExistsAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var datasetId = GetRequiredDatasetId();
-                var projectId = GetRequiredProjectId();
-                var sql = $"SELECT 1 FROM `{projectId}`.`{datasetId}`.INFORMATION_SCHEMA.TABLES LIMIT 1";
-
+                await using var command = CreateExistsCommand();
                 await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-                await _rawSqlCommandBuilder.Build(sql).ExecuteNonQueryAsync(
-                    new RelationalCommandParameterObject(_connection, null, null, null, null),
-                    cancellationToken).ConfigureAwait(false);
-
-                return true;
+                var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                return result != null && (long)result > 0;
             }
-            catch (GoogleApiException ex) when (IsDoesNotExist(ex))
-            {
-                return false;
-            }
-            catch (Exception)
+            catch (BigQueryException)
             {
                 return false;
             }
@@ -134,6 +136,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
             }
         }
 
+        /// <inheritdoc/>
         public override bool HasTables()
         {
             var datasetId = GetRequiredDatasetId();
@@ -143,6 +146,24 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 new RelationalCommandParameterObject(_connection, null, null, null, null))! > 0;
         }
 
+        private DbCommand CreateExistsCommand()
+        {
+            var datasetId = GetRequiredDatasetId();
+            var projectId = GetRequiredProjectId();
+            var sql = $"SELECT COUNT(1) FROM {Dependencies.SqlGenerationHelper.DelimitIdentifier(projectId)}.INFORMATION_SCHEMA.SCHEMATA WHERE schema_name = @datasetId";
+
+            var command = _connection.DbConnection.CreateCommand();
+            command.CommandText = sql;
+
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "@datasetId";
+            parameter.Value = datasetId;
+            command.Parameters.Add(parameter);
+
+            return command;
+        }
+
+        /// <inheritdoc/>
         public override async Task<bool> HasTablesAsync(CancellationToken cancellationToken = default)
         {
             var datasetId = GetRequiredDatasetId();
@@ -154,7 +175,6 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
 
             return (long)result! > 0;
         }
-
 
         private string GetRequiredDatasetId()
         {
@@ -171,7 +191,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
             var projectId = (_connection.DbConnection as BigQueryConnection)?.DefaultProjectId;
             if (string.IsNullOrEmpty(projectId))
             {
-                throw new InvalidOperationException(projectId + " must be specified in the connection string to create or delete the database.");
+                throw new InvalidOperationException("A 'DefaultProjectId' must be specified in the connection string to create or delete the database.");
             }
             return projectId;
         }
