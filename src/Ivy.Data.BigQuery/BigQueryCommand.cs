@@ -3,8 +3,6 @@ using System.Data.Common;
 using System.Data;
 using Google.Apis.Bigquery.v2.Data;
 using System.Diagnostics;
-using System.Resources;
-using System.Threading;
 
 namespace Ivy.Data.BigQuery
 {
@@ -398,10 +396,10 @@ namespace Ivy.Data.BigQuery
         {
             Debug.WriteLine("--- Executing BigQuery Command ---");
             Debug.WriteLine($"CommandText: {CommandText}");
-            if (_parameters != null && _parameters.Count > 0)
+            if (Parameters.Count > 0)
             {
                 Debug.WriteLine("Parameters:");
-                foreach (BigQueryParameter p in _parameters)
+                foreach (BigQueryParameter p in Parameters)
                 {
                     string valueStr = p.Value == null ? "NULL" : p.Value == DBNull.Value ? "DBNull" : p.Value.ToString();
                     string typeStr = p.BigQueryDbType.HasValue ? p.BigQueryDbType.Value.ToString() : p.DbType.ToString() ?? "Unknown";
