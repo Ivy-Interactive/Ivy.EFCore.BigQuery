@@ -39,7 +39,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.Migrations
         {
             base.Can_get_active_provider();
 
-            Assert.Equal("BigQuery.EntityFrameworkCore.Test", ActiveProvider);
+            Assert.Equal("Ivy.EFCore.BigQuery", ActiveProvider);
         }
 
         protected override Task ExecuteSqlAsync(string value)

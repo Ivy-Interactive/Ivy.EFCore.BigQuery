@@ -1,36 +1,26 @@
-using System.Data.Common;
-using System.Text;
-using Ivy.Data.BigQuery;
+using Ivy.EFCore.BigQuery.Design.Internal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Scaffolding;
+using Microsoft.EntityFrameworkCore.TestUtilities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Ivy.EFCore.BigQuery.Extensions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
 {
-    public class BigQueryDatabaseCleaner
+    public class BigQueryDatabaseCleaner : RelationalDatabaseCleaner
     {
-        public virtual void Clean(DatabaseFacade database)
+        protected override IDatabaseModelFactory CreateDatabaseModelFactory(ILoggerFactory loggerFactory)
         {
-            var connection = (BigQueryConnection)database.GetDbConnection();
-            var commands = new StringBuilder();
+            var services = new ServiceCollection();
+            services.AddEntityFrameworkBigQuery();
 
-            connection.Open();
-            var tables = connection.GetSchema("Tables");
+            new BigQueryDesignTimeServices().ConfigureDesignTimeServices(services);
 
-            foreach (System.Data.DataRow row in tables.Rows)
-            {
-                var tableName = (string)row["TABLE_NAME"];
-                if (!tableName.EndsWith("_seed"))
-                {
-                    commands.AppendLine($"DROP TABLE IF EXISTS `{connection.DefaultDatasetId}.{tableName}`;");
-                }
-            }
-
-            if (commands.Length > 0)
-            {
-                database.ExecuteSqlRaw(commands.ToString());
-            }
-            
-            connection.Close();
+            return services
+                .BuildServiceProvider() 
+                .GetRequiredService<IDatabaseModelFactory>();
         }
     }
 }
