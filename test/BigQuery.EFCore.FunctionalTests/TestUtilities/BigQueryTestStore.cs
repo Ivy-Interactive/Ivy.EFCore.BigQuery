@@ -1,20 +1,33 @@
 using Ivy.Data.BigQuery;
 using Ivy.EFCore.BigQuery.Extensions;
+using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.TestUtilities;
+using System.Data;
 using System.Data.Common;
+using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
 {
-    public class BigQueryTestStore(string name, bool shared = true, string? scriptPath = null)
-        : RelationalTestStore(name, shared, CreateConnection(name))
+    public class BigQueryTestStore : RelationalTestStore
     {
         private static readonly SemaphoreSlim Semaphore = new(1, 1);
 
-        private readonly string _testDatabaseName = name;
+        private readonly string _testDatasetName;
+        private string? _scriptPath;
         public const int CommandTimeout = 300;
 
+        public BigQueryTestStore(string name, bool shared = true, string? scriptPath = null) : base(name, shared, CreateConnection(name))
+        {
+            _testDatasetName = name;
+            if (scriptPath != null)
+            {
+                _scriptPath = Path.Combine(Path.GetDirectoryName(typeof(BigQueryTestStore).Assembly.Location)!, scriptPath);
+            }
+        }
         public static BigQueryTestStore GetOrCreate(
             string name,
             string? scriptPath = null,
@@ -40,122 +53,50 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
         public override DbContextOptionsBuilder AddProviderOptions(DbContextOptionsBuilder builder)
             => builder.UseBigQuery(Connection.ConnectionString);
 
-        protected override async Task InitializeAsync(Func<DbContext> createContext, Func<DbContext, Task> seed, Func<DbContext, Task> clean)
+        protected override async Task InitializeAsync(Func<DbContext> createContext, Func<DbContext, Task>? seed, Func<DbContext, Task>? clean)
         {
-            var seedDatabaseName = $"{Name}_seed";
-
-            await Semaphore.WaitAsync();
-            try
+            if (await CreateDatabaseAsync(createContext, clean))
             {
-                await CreateSeedDatabaseOnceAsync(seedDatabaseName, createContext, seed, scriptPath);
-            }
-            finally
-            {
-                Semaphore.Release();
+                if (_scriptPath != null)
+                {
+                    ExecuteScript(_scriptPath);
+                }
+                else 
+                {
+                    await using var seedContext = createContext();
+                    seedContext.Database.SetConnectionString(CreateConnectionString(_testDatasetName));
+                    if (seed != null)
+                    {
+                        await seed(seedContext);
+                    }                        
+                }
             }
 
-            await CopyDatabaseAsync(seedDatabaseName, _testDatabaseName);
-
-            Connection.ConnectionString = CreateConnectionString(_testDatabaseName);
+            Connection.ConnectionString = CreateConnectionString(_testDatasetName);
         }
-
-        private static async Task CreateSeedDatabaseOnceAsync(string seedDatabaseName, Func<DbContext> createContext, Func<DbContext, Task>? seed, string scriptPath)
+        private async Task<bool> CreateDatabaseAsync(Func<DbContext> createContext, Func<DbContext, Task>? clean)
         {
-            await using var seedDbContext = createContext();
+            await using var seedContext = createContext();
+            seedContext.Database.SetConnectionString(CreateConnectionString(_testDatasetName));
+            var databaseCreator = (RelationalDatabaseCreator)seedContext.Database.GetService<IDatabaseCreator>();
 
-            seedDbContext.Database.SetConnectionString(CreateConnectionString(seedDatabaseName));
+            var connection = seedContext.Database.GetDbConnection();
 
-            await seedDbContext.Database.EnsureCreatedAsync();
-
-            if (!string.IsNullOrEmpty(scriptPath))
+            if (await databaseCreator.ExistsAsync())
             {
-                var script = await File.ReadAllTextAsync(scriptPath);
-                await seedDbContext.Database.ExecuteSqlRawAsync(script);
+                if (_scriptPath != null)
+                {
+                    return false;
+                }
+
+                clean?.Invoke(seedContext);
+                await CleanAsync(seedContext);
+                return true;
             }
 
-            if (seed != null)
-            {
-                await seed(seedDbContext);
-            }
-        }
+            await databaseCreator.CreateAsync();
 
-        private async Task CopyDatabaseAsync(string sourceDataset, string destinationDataset)
-        {
-            using var controlConnection = new BigQueryConnection(TestEnvironment.DefaultConnection);
-            await controlConnection.OpenAsync();
-
-            using (var dropCmd = controlConnection.CreateCommand())
-            {
-                dropCmd.CommandText = $"DROP SCHEMA IF EXISTS `{destinationDataset}` CASCADE";
-                await dropCmd.ExecuteNonQueryAsync();
-            }
-            using (var createCmd = controlConnection.CreateCommand())
-            {
-                createCmd.CommandText = $"CREATE SCHEMA `{destinationDataset}`";
-                await createCmd.ExecuteNonQueryAsync();
-            }
-
-            var tables = await GetSchemaObjectsAsync(controlConnection, sourceDataset, "BASE TABLE");
-            foreach (var table in tables)
-            {
-                using var copyCmd = controlConnection.CreateCommand();
-                copyCmd.CommandText = $"CREATE TABLE `{destinationDataset}`.`{table.Key}` COPY `{sourceDataset}`.`{table.Key}`";
-                await copyCmd.ExecuteNonQueryAsync();
-            }
-
-
-            var views = await GetSchemaObjectsAsync(controlConnection, sourceDataset, "VIEW");
-            foreach (var view in views)
-            {
-                using var viewCmd = controlConnection.CreateCommand();
-
-                viewCmd.CommandText = view.Value.Replace($"`{sourceDataset}`", $"`{destinationDataset}`");
-                await viewCmd.ExecuteNonQueryAsync();
-            }
-
-            var routines = await GetRoutinesAsync(controlConnection, sourceDataset);
-            foreach (var routine in routines)
-            {
-                using var routineCmd = controlConnection.CreateCommand();
-                routineCmd.CommandText = routine.Value.Replace($"`{sourceDataset}`", $"`{destinationDataset}`");
-                await routineCmd.ExecuteNonQueryAsync();
-            }
-        }
-
-        private async Task<Dictionary<string, string>> GetSchemaObjectsAsync(DbConnection connection, string dataset, string objectType)
-        {
-            var objects = new Dictionary<string, string>();
-            using var command = connection.CreateCommand();
-            command.CommandText = $"SELECT table_name, ddl FROM `{dataset}`.INFORMATION_SCHEMA.TABLES WHERE table_type = @objectType";
-            var param = command.CreateParameter();
-            param.ParameterName = "@objectType";
-            param.Value = objectType;
-            command.Parameters.Add(param);
-
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                objects.Add(reader.GetString(0), reader.IsDBNull(1) ? string.Empty : reader.GetString(1));
-            }
-            return objects;
-        }
-
-        private async Task<Dictionary<string, string>> GetRoutinesAsync(DbConnection connection, string dataset)
-        {
-            var routines = new Dictionary<string, string>();
-            using var command = connection.CreateCommand();
-            command.CommandText = $"SELECT routine_name, ddl FROM `{dataset}`.INFORMATION_SCHEMA.ROUTINES";
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                routines.Add(reader.GetString(0), reader.GetString(1));
-            }
-            return routines;
-        }
-
-        public override async Task CleanAsync(DbContext context)
-        {
-            await Task.CompletedTask;
+            return true;
         }
 
         public void ExecuteScript(string scriptPath)
@@ -182,16 +123,22 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
         string sql,
         bool useTransaction = false,
         object[]? parameters = null)
-        => ExecuteCommand(connection, execute, sql, useTransaction, parameters);
+         => ExecuteCommand(connection, execute, sql, parameters);
+
+        private static Task<T> ExecuteAsync<T>(
+            DbConnection connection,
+            Func<DbCommand, Task<T>> executeAsync,
+            string sql,
+            IReadOnlyList<object>? parameters = null)
+            => ExecuteCommandAsync(connection, executeAsync, sql, parameters);
 
         private static T ExecuteCommand<T>(
             DbConnection connection,
             Func<DbCommand, T> execute,
             string sql,
-            bool useTransaction,
             object[]? parameters)
         {
-            if (connection.State != System.Data.ConnectionState.Closed)
+            if (connection.State != ConnectionState.Closed)
             {
                 connection.Close();
             }
@@ -199,33 +146,60 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
             connection.Open();
             try
             {
-                using var transaction = useTransaction ? connection.BeginTransaction() : null;
 
                 T result;
                 using (var command = CreateCommand(connection, sql, parameters))
                 {
-                    command.Transaction = transaction;
                     result = execute(command);
                 }
-
-                transaction?.Commit();
 
                 return result;
             }
             finally
             {
-                if (connection.State == System.Data.ConnectionState.Closed
-                    && connection.State != System.Data.ConnectionState.Closed)
+                if (connection.State == ConnectionState.Closed
+                    && connection.State != ConnectionState.Closed)
                 {
                     connection.Close();
                 }
             }
         }
+        private static async Task<T> ExecuteCommandAsync<T>(
+            DbConnection connection,
+            Func<DbCommand, Task<T>> executeAsync,
+            string sql,
+        IReadOnlyList<object>? parameters)
+        {
+            if (connection.State != ConnectionState.Closed)
+            {
+                await connection.CloseAsync();
+            }
+
+            await connection.OpenAsync();
+            try
+            {
+
+                T result;
+                using (var command = CreateCommand(connection, sql, parameters))
+                {
+                    result = await executeAsync(command);
+                }
+
+                return result;
+            }
+            finally
+            {
+                if (connection.State != ConnectionState.Closed)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
 
         private static DbCommand CreateCommand(
-    DbConnection connection,
-    string commandText,
-    IReadOnlyList<object>? parameters = null)
+            DbConnection connection,
+            string commandText,
+            IReadOnlyList<object>? parameters = null)
         {
             var command = (BigQueryCommand)connection.CreateCommand();
 
@@ -236,11 +210,20 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
             {
                 for (var i = 0; i < parameters.Count; i++)
                 {
-                    command.Parameters.AddWithValue("p" + i, parameters[i]);
+                    command.Parameters.AddWithValue("@" + i, parameters[i]);
                 }
             }
 
             return command;
+        }
+
+        private static Task<T> ExecuteScalarAsync<T>(DbConnection connection, string sql, IReadOnlyList<object>? parameters = null)
+        => ExecuteAsync(connection, async command => (T)(await command.ExecuteScalarAsync())!, sql, parameters);
+
+        public override Task CleanAsync(DbContext context)
+        {
+            context.Database.EnsureClean();
+            return Task.CompletedTask;
         }
 
         public override void Dispose()
@@ -248,7 +231,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
             using var controlConnection = new BigQueryConnection(TestEnvironment.DefaultConnection);
             controlConnection.Open();
             using var dropCmd = controlConnection.CreateCommand();
-            dropCmd.CommandText = $"DROP SCHEMA IF EXISTS `{_testDatabaseName}` CASCADE";
+            dropCmd.CommandText = $"DROP SCHEMA IF EXISTS `{_testDatasetName}` CASCADE";
             dropCmd.ExecuteNonQuery();
 
             base.Dispose();

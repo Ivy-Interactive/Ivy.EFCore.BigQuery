@@ -9,8 +9,12 @@ using Ivy.EFCore.BigQuery.Extensions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
 {
-    public class BigQueryTestStoreFactory() : RelationalTestStoreFactory
+    public class BigQueryTestStoreFactory : RelationalTestStoreFactory
     {
+        protected BigQueryTestStoreFactory()
+        {            
+        }
+
         public static BigQueryTestStoreFactory Instance { get; } = new();
 
         public override TestStore Create(string storeName)

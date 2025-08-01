@@ -7,20 +7,24 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ivy.EFCore.BigQuery.Extensions;
 
-namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
+namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities;
+
+public class BigQueryDatabaseCleaner : RelationalDatabaseCleaner
 {
-    public class BigQueryDatabaseCleaner : RelationalDatabaseCleaner
+    protected override IDatabaseModelFactory CreateDatabaseModelFactory(ILoggerFactory loggerFactory)
     {
-        protected override IDatabaseModelFactory CreateDatabaseModelFactory(ILoggerFactory loggerFactory)
-        {
-            var services = new ServiceCollection();
-            services.AddEntityFrameworkBigQuery();
+        var services = new ServiceCollection();
+        services.AddEntityFrameworkBigQuery();
 
-            new BigQueryDesignTimeServices().ConfigureDesignTimeServices(services);
+        new BigQueryDesignTimeServices().ConfigureDesignTimeServices(services);
 
-            return services
-                .BuildServiceProvider() 
-                .GetRequiredService<IDatabaseModelFactory>();
-        }
+        return services
+            .BuildServiceProvider() 
+            .GetRequiredService<IDatabaseModelFactory>();
+    }
+
+    public override void Clean(DatabaseFacade facade)
+    {
+       
     }
 }

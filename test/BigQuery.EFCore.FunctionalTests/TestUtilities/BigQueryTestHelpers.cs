@@ -1,11 +1,9 @@
-﻿using Ivy.Data.BigQuery;
-using Ivy.EFCore.BigQuery.Diagnostics;
+﻿using Ivy.EFCore.BigQuery.Diagnostics;
 using Ivy.EFCore.BigQuery.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities;
 
