@@ -31,8 +31,6 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
         public override void GenerateParameterName(StringBuilder builder, string name)
             => builder.Append('@').Append(name);
 
-        public override string StatementTerminator => ";" + Environment.NewLine;
-
         public override string BatchTerminator => ""; //todo test
 
         public override string StartTransactionStatement
