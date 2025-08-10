@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
@@ -28,6 +27,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
                 _scriptPath = Path.Combine(Path.GetDirectoryName(typeof(BigQueryTestStore).Assembly.Location)!, scriptPath);
             }
         }
+
         public static BigQueryTestStore GetOrCreate(
             string name,
             string? scriptPath = null,
@@ -74,6 +74,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
 
             Connection.ConnectionString = CreateConnectionString(_testDatasetName);
         }
+
         private async Task<bool> CreateDatabaseAsync(Func<DbContext> createContext, Func<DbContext, Task>? clean)
         {
             await using var seedContext = createContext();
@@ -164,6 +165,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
                 }
             }
         }
+
         private static async Task<T> ExecuteCommandAsync<T>(
             DbConnection connection,
             Func<DbCommand, Task<T>> executeAsync,
