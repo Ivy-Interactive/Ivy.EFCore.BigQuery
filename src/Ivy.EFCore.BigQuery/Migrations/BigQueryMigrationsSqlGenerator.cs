@@ -22,6 +22,7 @@ namespace Ivy.EFCore.BigQuery.Migrations
         {
         }
 
+        /// <inheritdoc/>
         protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
             if (operation is BigQueryCreateDatasetOperation createDatabaseOperation)
@@ -46,19 +47,12 @@ namespace Ivy.EFCore.BigQuery.Migrations
         //builder.Annotation("BigQuery:CreateOrReplace", createOrReplace);
         //Extensions\MetadataExtensions\IndexExtensions.cs
 
+        /// <inheritdoc/>
         protected override void PrimaryKeyConstraint(
         AddPrimaryKeyOperation operation,
         IModel? model,
         MigrationCommandListBuilder builder)
         {
-            if (operation.Name != null)
-            {
-                builder
-                    .Append("CONSTRAINT ")
-                    .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Name))
-                    .Append(" ");
-            }
-
             builder
                 .Append("PRIMARY KEY ");
 
@@ -69,8 +63,11 @@ namespace Ivy.EFCore.BigQuery.Migrations
                 .Append(")");
 
             IndexOptions(operation, model, builder);
+
+            builder.Append(" NOT ENFORCED ");
         }
 
+        /// <inheritdoc/>
         protected override void ColumnDefinition(
             string? schema,
             string table,
@@ -92,7 +89,6 @@ namespace Ivy.EFCore.BigQuery.Migrations
             }
         }
 
-        /// <inheritdoc/>
         protected virtual void Generate(BigQueryCreateDatasetOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
             builder.Append("CREATE SCHEMA ");
