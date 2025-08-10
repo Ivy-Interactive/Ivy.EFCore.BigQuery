@@ -48,7 +48,7 @@ namespace Ivy.EFCore.BigQuery.Extensions
               //.TryAdd<IModelValidator, BigQueryModelValidator>() //todo
               .TryAdd<IModificationCommandBatchFactory, BigQueryModificationCommandBatchFactory>()
               .TryAdd<IRelationalDatabaseCreator, BigQueryDatabaseCreator>()
-              //.TryAdd<IHistoryRepository, BigQueryHistoryRepository>() //todo
+              .TryAdd<IHistoryRepository, BigQueryHistoryRepository>()
               .TryAdd<IRelationalConnection>(p => p.GetRequiredService<IBigQueryRelationalConnection>())
               .TryAdd<IMigrationsSqlGenerator, BigQueryMigrationsSqlGenerator>()
               //.TryAdd<IMemberTranslatorProvider, BigQueryMemberTranslatorProvider>() //todo
