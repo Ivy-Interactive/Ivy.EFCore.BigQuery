@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Ivy.EFCore.BigQuery.Extensions;
 
 namespace Ivy.EFCore.BigQuery.Sample.Models;
 
@@ -29,20 +28,24 @@ public partial class ModelContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    { }
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder){ }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<DistributionCenter>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
+            
+            // Example: Create table with IF NOT EXISTS
+            entity.HasBigQueryIfNotExists();
         });
 
         modelBuilder.Entity<Event>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
+            
+            // Example: Create temporary table
+            entity.HasBigQueryTempTable();
         });
 
         modelBuilder.Entity<InventoryItem>(entity =>
@@ -68,6 +71,27 @@ public partial class ModelContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
+            
+            // Example: Add a search index on user searchable fields
+            entity.HasIndex(e => new { e.FirstName, e.LastName, e.Email })
+                .HasBigQuerySearchIndex(ifNotExists: true)
+                .HasBigQuerySearchIndexOptions("analyzer='LOG_ANALYZER'")
+                .HasBigQuerySearchIndexColumnOptions("Email", "index_granularity='GLOBAL'");
+        });
+
+        // Example: Add a search index on all string columns for documents
+        modelBuilder.Entity<InventoryItem>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            
+            // Create a search index on all string columns
+            entity.HasIndex("SIDX_Inventory_All")
+                .HasBigQuerySearchIndexOnAllColumns(ifNotExists: true)
+                .HasBigQuerySearchIndexColumnOptions(new Dictionary<string, string>
+                {
+                    ["ProductName"] = "index_granularity='COLUMN'",
+                    ["ProductBrand"] = "index_granularity='GLOBAL'"
+                });
         });
 
         OnModelCreatingPartial(modelBuilder);
