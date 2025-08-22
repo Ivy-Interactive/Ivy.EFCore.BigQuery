@@ -5,7 +5,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
 {
     public class BigQueryNorthwindTestStoreFactory : BigQueryTestStoreFactory
     {
-        public const string Name = "Northwind";
+        public const string Name = "efc_northwind";
         public static readonly string NorthwindConnectionString = BigQueryTestStore.CreateConnectionString(Name);
 
         public new static BigQueryNorthwindTestStoreFactory Instance { get; } = new();
@@ -15,6 +15,6 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
         }
 
         public override TestStore GetOrCreate(string storeName)
-            => BigQueryTestStore.GetOrCreate(storeName, scriptPath: "Northwind.sql");
+            => BigQueryTestStore.GetOrCreate(Name, scriptPath: "Northwind.sql");
     }
 }
