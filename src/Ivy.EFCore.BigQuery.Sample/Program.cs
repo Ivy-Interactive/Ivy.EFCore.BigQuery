@@ -1,14 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Ivy.EFCore.BigQuery;
 using System.ComponentModel.DataAnnotations.Schema;
 using Ivy.EFCore.BigQuery.Design.Internal;
 using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 using Ivy.EFCore.BigQuery.Extensions;
-using Google;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Ivy.EFCore.BigQuery.Data;
+using Ivy.Data.BigQuery;
 
 var dataSource = "http://localhost:9050";
 var projectId = "test";

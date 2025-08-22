@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.Query
 {
-    public class NorthwindWhereQueryBigQueryTest : NorthwindWhereQueryRelationalTestBase<NorthwindQueryBigQueryFixture<NoopModelCustomizer>>        
+    public class NorthwindWhereQueryBigQueryTest : NorthwindWhereQueryRelationalTestBase<NorthwindQueryBigQueryFixture<NoopModelCustomizer>>
     {
         public NorthwindWhereQueryBigQueryTest(NorthwindQueryBigQueryFixture<NoopModelCustomizer> fixture, ITestOutputHelper testOutputHelper)
             : base(fixture)
@@ -24,16 +24,16 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.Query
 
             AssertSql(
                 """
-SELECT "p"."ProductID", "p"."Discontinued", "p"."ProductName", "p"."SupplierID", "p"."UnitPrice", "p"."UnitsInStock"
-FROM "Products" AS "p"
+SELECT `p`.`ProductID`, `p`.`Discontinued`, `p`.`ProductName`, `p`.`SupplierID`, `p`.`UnitPrice`, `p`.`UnitsInStock`
+FROM `Products` AS `p`
 WHERE CASE
-    WHEN "p"."UnitsInStock" >= 20 THEN 1
+    WHEN `p`.`UnitsInStock` >= 20 THEN 1
     ELSE 0
 END
 """);
         }
 
         private void AssertSql(params string[] expected)
-        => Fixture.TestSqlLoggerFactory.AssertBaseline(expected);
+            => Fixture.TestSqlLoggerFactory.AssertBaseline(expected);
     }
 }

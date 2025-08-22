@@ -72,7 +72,7 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
                 }
             }
 
-            Connection.ConnectionString = CreateConnectionString(_testDatasetName);
+            //Connection.ConnectionString = CreateConnectionString(_testDatasetName);
         }
 
         private async Task<bool> CreateDatabaseAsync(Func<DbContext> createContext, Func<DbContext, Task>? clean)
