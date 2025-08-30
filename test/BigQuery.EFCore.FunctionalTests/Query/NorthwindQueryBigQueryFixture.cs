@@ -1,9 +1,7 @@
-﻿using Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities;
+using Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.TestModels.Northwind;
 using Microsoft.EntityFrameworkCore.TestUtilities;
-using Product = Microsoft.EntityFrameworkCore.TestModels.Northwind.Product;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.Query
 {
@@ -12,5 +10,9 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.Query
     {
         protected override ITestStoreFactory TestStoreFactory
             => BigQueryNorthwindTestStoreFactory.Instance;
+    }
+
+    public class NorthwindQueryBigQueryFixture : NorthwindQueryBigQueryFixture<BigQueryNorthwindModelCustomizer>
+    {
     }
 }
