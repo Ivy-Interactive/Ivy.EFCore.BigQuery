@@ -24,10 +24,10 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
         private readonly BigQueryGuidTypeMapping _guid = new();
 
    
-        private readonly FloatTypeMapping _float = new("FLOAT64", DbType.Double);
-        private readonly IntTypeMapping _int = new("INT64", DbType.Int32);
-        private readonly ShortTypeMapping _short = new("INT64", DbType.Int16);
-        private readonly ByteTypeMapping _byte = new("INT64", DbType.Byte);
+        private readonly BigQueryFloatTypeMapping _float = new();
+        private readonly BigQueryIntTypeMapping _int = new();
+        private readonly BigQueryShortTypeMapping _short = new();
+        private readonly BigQueryByteTypeMapping _byte = new();
 
         private readonly ConcurrentDictionary<string, RelationalTypeMapping> _storeTypeMappings;
         private readonly ConcurrentDictionary<Type, RelationalTypeMapping> _clrTypeMappings;
@@ -64,20 +64,34 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 { typeof(string), _string },
                 { typeof(byte[]), _bytes },
                 { typeof(bool), _bool },
+                { typeof(bool?), _bool },
                 { typeof(long), _long },
+                { typeof(long?), _long },
                 { typeof(double), _double },
+                { typeof(double?), _double },
                 { typeof(DateTimeOffset), _timestamp },
+                { typeof(DateTimeOffset?), _timestamp },
                 { typeof(DateTime), _dateTime },
+                { typeof(DateTime?), _dateTime },
                 { typeof(DateOnly), _date },
+                { typeof(DateOnly?), _date },
                 { typeof(TimeOnly), _time },
+                { typeof(TimeOnly?), _time },
                 { typeof(decimal), _decimal },
+                { typeof(decimal?), _decimal },
                 { typeof(Guid), _guid },
+                { typeof(Guid?), _guid },
                 { typeof(BigQueryNumeric), _bigNumericDefault },
+                { typeof(BigQueryNumeric?), _bigNumericDefault },
 
                 { typeof(float), _float },
+                { typeof(float?), _float },
                 { typeof(int), _int },
+                { typeof(int?), _int },
                 { typeof(short), _short },
+                { typeof(short?), _short },
                 { typeof(byte), _byte },
+                { typeof(byte?), _byte },
             };
             _clrTypeMappings = new ConcurrentDictionary<Type, RelationalTypeMapping>(clrTypeMappings);
         }
