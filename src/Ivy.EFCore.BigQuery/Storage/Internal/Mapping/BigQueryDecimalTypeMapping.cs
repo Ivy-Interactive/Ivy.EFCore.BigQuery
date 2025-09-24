@@ -43,14 +43,25 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
         protected override string GenerateNonNullSqlLiteral(object value)
         {
-
-            var decimalValue = (decimal)value;
+            string stringValue;
+            if (value is decimal decimalValue)
+            {
+                stringValue = decimalValue.ToString(CultureInfo.InvariantCulture);
+            }
+            else if (value is Google.Cloud.BigQuery.V2.BigQueryNumeric bigQueryNumeric)
+            {
+                stringValue = bigQueryNumeric.ToString();
+            }
+            else
+            {
+                stringValue = value.ToString() ?? "0";
+            }
 
             string typePrefix = Parameters.StoreType.StartsWith("BIG", StringComparison.OrdinalIgnoreCase)
                 ? "BIGNUMERIC"
                 : "NUMERIC";
 
-            return $"{typePrefix} '{decimalValue.ToString(CultureInfo.InvariantCulture)}'";
+            return $"{typePrefix} '{stringValue}'";
         }
 
         protected override void ConfigureParameter(DbParameter parameter)
@@ -59,14 +70,8 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
             if (parameter is BigQueryParameter bigQueryParameter)
             {
-                if (Parameters.StoreType.StartsWith("BIG", StringComparison.OrdinalIgnoreCase))
-                {
-                    bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.BigNumeric;
-                }
-                else
-                {
-                    bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric;
-                }
+                // Use Numeric for both NUMERIC and BIGNUMERIC since BigQueryNumeric objects work with Numeric type
+                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric;
             }
         }
     }

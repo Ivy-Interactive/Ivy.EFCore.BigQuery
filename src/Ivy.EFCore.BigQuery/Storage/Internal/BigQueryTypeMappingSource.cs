@@ -52,7 +52,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 { "DATE", new List<RelationalTypeMapping> { _date } },
                 { "TIME", new List<RelationalTypeMapping> { _time } },
                 { "BIGNUMERIC", new List<RelationalTypeMapping> { _bigNumericDefault } },
-                { "BIGNUMERIC(57, 28)", new List<RelationalTypeMapping> { _decimal } }
+                { "BIGNUMERIC(57, 28)", new List<RelationalTypeMapping> { _decimal } },                                
             };
 
             _storeTypeMappings = new ConcurrentDictionary<string, RelationalTypeMapping>(
@@ -91,7 +91,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 { typeof(short), _short },
                 { typeof(short?), _short },
                 { typeof(byte), _byte },
-                { typeof(byte?), _byte },
+                { typeof(byte?), _byte },            
             };
             _clrTypeMappings = new ConcurrentDictionary<Type, RelationalTypeMapping>(clrTypeMappings);
         }

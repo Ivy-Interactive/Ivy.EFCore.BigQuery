@@ -208,7 +208,7 @@ namespace Ivy.Data.BigQuery
                 return (DbType.DateTime, Google.Cloud.BigQuery.V2.BigQueryDbType.DateTime);
             }
             if (type == typeof(TimeSpan) || type == typeof(TimeSpan?)) return (DbType.Time, Google.Cloud.BigQuery.V2.BigQueryDbType.Time);
-            if (type == typeof(decimal) || type == typeof(decimal?)) return (DbType.Decimal, Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric); //BIGNUMERIC?
+            if (type == typeof(decimal) || type == typeof(decimal?)) return (DbType.Decimal, Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric);
             if (type == typeof(BigQueryNumeric) || type == typeof(BigQueryNumeric?))
             {
                 return (DbType.Decimal, Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric);
@@ -254,6 +254,9 @@ namespace Ivy.Data.BigQuery
             {
                 apiValue = null;
             }
+
+            // Handle BigQueryNumeric for BigNumeric parameters - keep as-is
+            // The Google Cloud BigQuery library expects BigQueryNumeric for BigNumeric parameters
 
             else if (apiValue is Stream streamValue)
             {

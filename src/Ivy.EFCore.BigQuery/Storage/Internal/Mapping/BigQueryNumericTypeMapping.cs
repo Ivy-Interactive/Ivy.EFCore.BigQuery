@@ -49,14 +49,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
             if (parameter is Data.BigQuery.BigQueryParameter bigQueryParameter)
             {
-                if (Parameters.StoreType.StartsWith("BIG", StringComparison.OrdinalIgnoreCase))
-                {
-                    bigQueryParameter.BigQueryDbType = BigQueryDbType.BigNumeric;
-                }
-                else
-                {
-                    bigQueryParameter.BigQueryDbType = BigQueryDbType.Numeric;
-                }
+                bigQueryParameter.BigQueryDbType = BigQueryDbType.Numeric;
             }
 
             if (Parameters.Precision.HasValue)
