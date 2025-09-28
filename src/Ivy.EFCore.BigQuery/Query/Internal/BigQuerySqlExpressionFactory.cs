@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 
 namespace Ivy.EFCore.BigQuery.Query.Internal;
 
@@ -16,6 +17,8 @@ public class BigQuerySqlExpressionFactory : SqlExpressionFactory
     {
         _typeMappingSource = dependencies.TypeMappingSource;
     }
+
+
 
     public override SqlExpression Convert(SqlExpression operand, Type type, RelationalTypeMapping? typeMapping)
     {
@@ -32,6 +35,8 @@ public class BigQuerySqlExpressionFactory : SqlExpressionFactory
 
         return base.Convert(operand, type, typeMapping);
     }
+
+
 
     //[return: NotNullIfNotNull("sqlExpression")]
     //public override SqlExpression? ApplyTypeMapping(SqlExpression? sqlExpression, RelationalTypeMapping? typeMapping)
