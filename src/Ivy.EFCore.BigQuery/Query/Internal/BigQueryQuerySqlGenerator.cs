@@ -22,6 +22,29 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
             _typeMappingSource = typeMappingSource;
         }
 
+
+        protected override Expression VisitSqlBinary(SqlBinaryExpression binary)
+        {
+            switch (binary.OperatorType)
+            {
+                case ExpressionType.Add:
+                    {
+                        if (binary.Type == typeof(string)
+                            || binary.Left.TypeMapping?.ClrType == typeof(string)
+                            || binary.Right.TypeMapping?.ClrType == typeof(string))
+                        {
+                            Visit(binary.Left);
+                            Sql.Append(" || ");
+                            Visit(binary.Right);
+                            return binary;
+                        }
+                        return base.VisitSqlBinary(binary);
+                    }
+                default:
+                    return base.VisitSqlBinary(binary);
+            }
+        }
+
         //protected override Expression VisitExtension(Expression extensionExpression)
         //{
         //    return extensionExpression switch
@@ -35,104 +58,104 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
         //    };
         //}
 
-        protected virtual Expression VisitBigQueryUnnest(BigQueryUnnestExpression unnestExpression)
-        {
-            Sql.Append("UNNEST(");
-            Visit(unnestExpression.ArrayExpression);
-            Sql.Append(")").Append(AliasSeparator).Append(_sqlGenerationHelper.DelimitIdentifier(unnestExpression.Alias));
+            //protected virtual Expression VisitBigQueryUnnest(BigQueryUnnestExpression unnestExpression)
+            //{
+            //    Sql.Append("UNNEST(");
+            //    Visit(unnestExpression.ArrayExpression);
+            //    Sql.Append(")").Append(AliasSeparator).Append(_sqlGenerationHelper.DelimitIdentifier(unnestExpression.Alias));
 
-            if (unnestExpression.WithOffset)
-            {
-                Sql.Append(unnestExpression.UseOrdinal ? " WITH ORDINAL" : " WITH OFFSET");
-                if (!string.IsNullOrEmpty(unnestExpression.OffsetAlias))
-                {
-                    Sql.Append(AliasSeparator).Append(_sqlGenerationHelper.DelimitIdentifier(unnestExpression.OffsetAlias));
-                }
-            }
+            //    if (unnestExpression.WithOffset)
+            //    {
+            //        Sql.Append(unnestExpression.UseOrdinal ? " WITH ORDINAL" : " WITH OFFSET");
+            //        if (!string.IsNullOrEmpty(unnestExpression.OffsetAlias))
+            //        {
+            //            Sql.Append(AliasSeparator).Append(_sqlGenerationHelper.DelimitIdentifier(unnestExpression.OffsetAlias));
+            //        }
+            //    }
 
-            return unnestExpression;
-        }
+            //    return unnestExpression;
+            //}
 
-        protected virtual Expression VisitBigQueryArrayAccess(BigQueryArrayAccessExpression arrayAccessExpression)
-        {
-            Visit(arrayAccessExpression.Array);
-            Sql.Append("[");
-            Sql.Append(arrayAccessExpression.UseOrdinal ? "ORDINAL(" : "OFFSET(");
-            Visit(arrayAccessExpression.Index);
-            Sql.Append(")]");
+            //protected virtual Expression VisitBigQueryArrayAccess(BigQueryArrayAccessExpression arrayAccessExpression)
+            //{
+            //    Visit(arrayAccessExpression.Array);
+            //    Sql.Append("[");
+            //    Sql.Append(arrayAccessExpression.UseOrdinal ? "ORDINAL(" : "OFFSET(");
+            //    Visit(arrayAccessExpression.Index);
+            //    Sql.Append(")]");
 
-            return arrayAccessExpression;
-        }
+            //    return arrayAccessExpression;
+            //}
 
-        //protected virtual Expression VisitBigQueryStructAccess(BigQueryStructAccessExpression structAccessExpression)
-        //{
-        //    Visit(structAccessExpression.Struct);
-        //    Sql.Append(".");
-        //    Sql.Append(_sqlGenerationHelper.DelimitIdentifier(structAccessExpression.FieldName));
+            //protected virtual Expression VisitBigQueryStructAccess(BigQueryStructAccessExpression structAccessExpression)
+            //{
+            //    Visit(structAccessExpression.Struct);
+            //    Sql.Append(".");
+            //    Sql.Append(_sqlGenerationHelper.DelimitIdentifier(structAccessExpression.FieldName));
 
-        //    return structAccessExpression;
-        //}
+            //    return structAccessExpression;
+            //}
 
-        //protected virtual Expression VisitBigQueryArrayConstructor(BigQueryArrayConstructorExpression arrayConstructorExpression)
-        //{
-        //    if (arrayConstructorExpression.UseArrayKeyword)
-        //    {
-        //        Sql.Append("ARRAY");
-        //        if (!string.IsNullOrEmpty(arrayConstructorExpression.ExplicitType))
-        //        {
-        //            Sql.Append("<").Append(arrayConstructorExpression.ExplicitType).Append(">");
-        //        }
-        //    }
+            //protected virtual Expression VisitBigQueryArrayConstructor(BigQueryArrayConstructorExpression arrayConstructorExpression)
+            //{
+            //    if (arrayConstructorExpression.UseArrayKeyword)
+            //    {
+            //        Sql.Append("ARRAY");
+            //        if (!string.IsNullOrEmpty(arrayConstructorExpression.ExplicitType))
+            //        {
+            //            Sql.Append("<").Append(arrayConstructorExpression.ExplicitType).Append(">");
+            //        }
+            //    }
 
-        //    Sql.Append("[");
+            //    Sql.Append("[");
 
-        //    for (var i = 0; i < arrayConstructorExpression.Elements.Count; i++)
-        //    {
-        //        if (i > 0)
-        //        {
-        //            Sql.Append(", ");
-        //        }
-        //        Visit(arrayConstructorExpression.Elements[i]);
-        //    }
+            //    for (var i = 0; i < arrayConstructorExpression.Elements.Count; i++)
+            //    {
+            //        if (i > 0)
+            //        {
+            //            Sql.Append(", ");
+            //        }
+            //        Visit(arrayConstructorExpression.Elements[i]);
+            //    }
 
-        //    Sql.Append("]");
+            //    Sql.Append("]");
 
-        //    return arrayConstructorExpression;
-        //}
+            //    return arrayConstructorExpression;
+            //}
 
-        //protected virtual Expression VisitBigQueryStructConstructor(BigQueryStructConstructorExpression structConstructorExpression)
-        //{
-        //    Sql.Append("STRUCT");
+            //protected virtual Expression VisitBigQueryStructConstructor(BigQueryStructConstructorExpression structConstructorExpression)
+            //{
+            //    Sql.Append("STRUCT");
 
-        //    if (!string.IsNullOrEmpty(structConstructorExpression.ExplicitType))
-        //    {
-        //        Sql.Append("<").Append(structConstructorExpression.ExplicitType).Append(">");
-        //    }
+            //    if (!string.IsNullOrEmpty(structConstructorExpression.ExplicitType))
+            //    {
+            //        Sql.Append("<").Append(structConstructorExpression.ExplicitType).Append(">");
+            //    }
 
-        //    Sql.Append("(");
+            //    Sql.Append("(");
 
-        //    for (var i = 0; i < structConstructorExpression.Arguments.Count; i++)
-        //    {
-        //        if (i > 0)
-        //        {
-        //            Sql.Append(", ");
-        //        }
+            //    for (var i = 0; i < structConstructorExpression.Arguments.Count; i++)
+            //    {
+            //        if (i > 0)
+            //        {
+            //            Sql.Append(", ");
+            //        }
 
-        //        Visit(structConstructorExpression.Arguments[i]);
+            //        Visit(structConstructorExpression.Arguments[i]);
 
-        //        // Add field name alias if provided
-        //        if (structConstructorExpression.FieldNames != null 
-        //            && i < structConstructorExpression.FieldNames.Count 
-        //            && !string.IsNullOrEmpty(structConstructorExpression.FieldNames[i]))
-        //        {
-        //            Sql.Append(AliasSeparator).Append(_sqlGenerationHelper.DelimitIdentifier(structConstructorExpression.FieldNames[i]));
-        //        }
-        //    }
+            //        // Add field name alias if provided
+            //        if (structConstructorExpression.FieldNames != null 
+            //            && i < structConstructorExpression.FieldNames.Count 
+            //            && !string.IsNullOrEmpty(structConstructorExpression.FieldNames[i]))
+            //        {
+            //            Sql.Append(AliasSeparator).Append(_sqlGenerationHelper.DelimitIdentifier(structConstructorExpression.FieldNames[i]));
+            //        }
+            //    }
 
-        //    Sql.Append(")");
+            //    Sql.Append(")");
 
-        //    return structConstructorExpression;
-        //}
+            //    return structConstructorExpression;
+            //}
 
         protected override void GenerateTop(SelectExpression selectExpression)
         {
