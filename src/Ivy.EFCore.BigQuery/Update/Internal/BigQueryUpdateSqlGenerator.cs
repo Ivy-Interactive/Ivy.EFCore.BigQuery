@@ -3,28 +3,43 @@ using System.Text;
 
 namespace Ivy.EFCore.BigQuery.Update.Internal
 {
-    public class BigQueryUpdateSqlGenerator : UpdateAndSelectSqlGenerator
+    public class BigQueryUpdateSqlGenerator : UpdateSqlGenerator
     {
         //todo implement
         public BigQueryUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependencies)
         : base(dependencies)
-        {}
+        { }
 
-
-        protected override void AppendRowsAffectedWhereCondition(StringBuilder commandStringBuilder, int expectedRowsAffected)
+        protected override void AppendUpdateCommand(
+        StringBuilder commandStringBuilder,
+        string name,
+        string? schema,
+        IReadOnlyList<IColumnModification> writeOperations,
+        IReadOnlyList<IColumnModification> readOperations,
+        IReadOnlyList<IColumnModification> conditionOperations,
+        bool appendReturningOneClause = false)
         {
-            throw new NotImplementedException();
+            AppendUpdateCommandHeader(commandStringBuilder, name, schema, writeOperations);
+            AppendWhereClause(commandStringBuilder, conditionOperations);
+            AppendReturningClause(commandStringBuilder, readOperations, appendReturningOneClause ? "1" : null);
+            commandStringBuilder.AppendLine(SqlGenerationHelper.StatementTerminator);
         }
 
-        protected override void AppendIdentityWhereCondition(StringBuilder commandStringBuilder, IColumnModification columnModification)
+        protected override void AppendWhereClause(
+            StringBuilder commandStringBuilder,
+            IReadOnlyList<IColumnModification> operations)
         {
-            throw new NotImplementedException();
+            if (operations.Count == 0)
+            {
+                commandStringBuilder
+                    .AppendLine()
+                    .Append("WHERE true");
+            }
+            else
+            {
+                base.AppendWhereClause(commandStringBuilder, operations);
+            }
         }
 
-        protected override ResultSetMapping AppendSelectAffectedCountCommand(StringBuilder commandStringBuilder, string name, string? schema,
-            int commandPosition)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
