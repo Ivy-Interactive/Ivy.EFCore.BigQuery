@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,15 +10,20 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
 {
     public class BigQueryQuerySqlGeneratorFactory : IQuerySqlGeneratorFactory
     {
+        private readonly QuerySqlGeneratorDependencies _dependencies;
+        private readonly IRelationalTypeMappingSource _typeMappingSource;
 
-        public BigQueryQuerySqlGeneratorFactory(QuerySqlGeneratorDependencies dependencies)
+        public BigQueryQuerySqlGeneratorFactory(
+            QuerySqlGeneratorDependencies dependencies,
+            IRelationalTypeMappingSource typeMappingSource)
         {
-            Dependencies = dependencies;
+            _dependencies = dependencies;
+            _typeMappingSource = typeMappingSource;
         }
 
-        protected virtual QuerySqlGeneratorDependencies Dependencies { get; }
-
         public virtual QuerySqlGenerator Create()
-            => new BigQueryQuerySqlGenerator(Dependencies);
+            => new BigQueryQuerySqlGenerator(
+                _dependencies,
+                _typeMappingSource);
     }
 }

@@ -22,7 +22,6 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
             _typeMappingSource = typeMappingSource;
         }
 
-
         protected override Expression VisitSqlBinary(SqlBinaryExpression binary)
         {
             switch (binary.OperatorType)
@@ -244,7 +243,6 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
         //https://cloud.google.com/bigquery/docs/reference/standard-sql/operators#operator_precedence
         protected override bool TryGetOperatorInfo(SqlExpression expression, out int precedence, out bool isAssociative)
         {
-            // BigQuery operator precedence (higher number = higher precedence)
             (precedence, isAssociative) = expression switch
             {
                 SqlBinaryExpression binary => binary.OperatorType switch
@@ -293,8 +291,8 @@ namespace Ivy.EFCore.BigQuery.Query.Internal
                     _ => default
                 },
 
-                BigQueryArrayAccessExpression => (1600, false),
-                BigQueryStructAccessExpression => (1600, false),
+                //BigQueryArrayAccessExpression => (1600, false),
+                //BigQueryStructAccessExpression => (1600, false),
 
                 _ => default
             };
