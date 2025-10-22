@@ -1,17 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore.Update;
+using Microsoft.EntityFrameworkCore.Update;
 
 namespace Ivy.EFCore.BigQuery.Update.Internal
 {
-    internal class BigQueryModificationCommandBatchFactory : IModificationCommandBatchFactory
+    public class BigQueryModificationCommandBatchFactory : IModificationCommandBatchFactory
     {
-        protected virtual ModificationCommandBatchFactoryDependencies Dependencies { get; }
+        private readonly ModificationCommandBatchFactoryDependencies _dependencies;
 
         public BigQueryModificationCommandBatchFactory(
-        ModificationCommandBatchFactoryDependencies dependencies) 
-            => Dependencies = dependencies;
+            ModificationCommandBatchFactoryDependencies dependencies)
+        {
+            _dependencies = dependencies;
+        }
 
-        public virtual ModificationCommandBatch Create() 
-            => new SingularModificationCommandBatch(Dependencies);
-
+        public virtual ModificationCommandBatch Create()
+            => new BigQueryModificationCommandBatch(_dependencies);
     }
 }
