@@ -1,10 +1,7 @@
 ﻿using Google.Cloud.BigQuery.V2;
 using Ivy.EFCore.BigQuery.Storage.Internal.Mapping;
-using Ivy.EFCore.BigQuery.Storage.ValueConversion.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Collections.Concurrent;
-using System.Data;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal
 {
@@ -20,10 +17,11 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
         private readonly BigQueryDateOnlyTypeMapping _date = new();
         private readonly BigQueryTimeOnlyTypeMapping _time = new();
         private readonly BigQueryDecimalTypeMapping _decimal = new(); // BIGNUMERIC(57, 28)
-        private readonly BigQueryNumericTypeMapping _bigNumericDefault = new("BIGNUMERIC");
+        private readonly BigQueryNumericTypeMapping _numericDefault = new("NUMERIC");
+        private readonly BigQueryBigNumericTypeMapping _bigNumericDefault = new("BIGNUMERIC");
         private readonly BigQueryGuidTypeMapping _guid = new();
 
-   
+
         private readonly BigQueryFloatTypeMapping _float = new();
         private readonly BigQueryIntTypeMapping _int = new();
         private readonly BigQueryShortTypeMapping _short = new();
@@ -40,7 +38,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
 
             var storeTypeMappings = new Dictionary<string, List<RelationalTypeMapping>>(StringComparer.OrdinalIgnoreCase)
             {
-                { "STRING", new List<RelationalTypeMapping> { _string, _guid } }, 
+                { "STRING", new List<RelationalTypeMapping> { _string, _guid } },
                 { "BYTES", new List<RelationalTypeMapping> { _bytes } },
                 { "BOOL", new List<RelationalTypeMapping> { _bool } },
                 { "INT64", new List<RelationalTypeMapping> { _long, _int, _short, _byte } },
@@ -52,11 +50,12 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 { "DATE", new List<RelationalTypeMapping> { _date } },
                 { "TIME", new List<RelationalTypeMapping> { _time } },
                 { "BIGNUMERIC", new List<RelationalTypeMapping> { _bigNumericDefault } },
-                { "BIGNUMERIC(57, 28)", new List<RelationalTypeMapping> { _decimal } },                                
+                { "NUMERIC", new List<RelationalTypeMapping> { _numericDefault } },
+                { "BIGNUMERIC(57, 28)", new List<RelationalTypeMapping> { _decimal } },
             };
 
             _storeTypeMappings = new ConcurrentDictionary<string, RelationalTypeMapping>(
-                storeTypeMappings.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.First()), 
+                storeTypeMappings.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.First()),
                 StringComparer.OrdinalIgnoreCase);
 
             var clrTypeMappings = new Dictionary<Type, RelationalTypeMapping>
@@ -81,8 +80,10 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 { typeof(decimal?), _decimal },
                 { typeof(Guid), _guid },
                 { typeof(Guid?), _guid },
-                { typeof(BigQueryNumeric), _bigNumericDefault },
-                { typeof(BigQueryNumeric?), _bigNumericDefault },
+                { typeof(BigQueryNumeric), _numericDefault },
+                { typeof(BigQueryNumeric?), _numericDefault },
+                { typeof(BigQueryBigNumeric), _bigNumericDefault },
+                { typeof(BigQueryBigNumeric?), _bigNumericDefault },
 
                 { typeof(float), _float },
                 { typeof(float?), _float },
@@ -91,7 +92,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal
                 { typeof(short), _short },
                 { typeof(short?), _short },
                 { typeof(byte), _byte },
-                { typeof(byte?), _byte },            
+                { typeof(byte?), _byte },
             };
             _clrTypeMappings = new ConcurrentDictionary<Type, RelationalTypeMapping>(clrTypeMappings);
         }

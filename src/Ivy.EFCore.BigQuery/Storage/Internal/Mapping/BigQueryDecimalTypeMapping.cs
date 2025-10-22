@@ -48,6 +48,10 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
             {
                 stringValue = decimalValue.ToString(CultureInfo.InvariantCulture);
             }
+            else if (value is Google.Cloud.BigQuery.V2.BigQueryBigNumeric bigQueryBigNumeric)
+            {
+                stringValue = bigQueryBigNumeric.ToString();
+            }
             else if (value is Google.Cloud.BigQuery.V2.BigQueryNumeric bigQueryNumeric)
             {
                 stringValue = bigQueryNumeric.ToString();

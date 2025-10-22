@@ -1,14 +1,14 @@
-﻿using Google.Cloud.BigQuery.V2;
+using Google.Cloud.BigQuery.V2;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Data.Common;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 {
-    public class BigQueryNumericTypeMapping : RelationalTypeMapping
+    public class BigQueryBigNumericTypeMapping : RelationalTypeMapping
     {
-        private static readonly Type _clrType = typeof(BigQueryNumeric);
+        private static readonly Type _clrType = typeof(BigQueryBigNumeric);
 
-        public BigQueryNumericTypeMapping(string storeType)
+        public BigQueryBigNumericTypeMapping(string storeType)
             : this(
                 new RelationalTypeMappingParameters(
                     new CoreTypeMappingParameters(_clrType),
@@ -19,17 +19,17 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
         {
         }
 
-        protected BigQueryNumericTypeMapping(RelationalTypeMappingParameters parameters)
+        protected BigQueryBigNumericTypeMapping(RelationalTypeMappingParameters parameters)
             : base(parameters)
         {
         }
 
         protected override RelationalTypeMapping Clone(RelationalTypeMappingParameters parameters)
-            => new BigQueryNumericTypeMapping(parameters);
+            => new BigQueryBigNumericTypeMapping(parameters);
 
         protected override string GenerateNonNullSqlLiteral(object value)
         {
-            var numericValue = (BigQueryNumeric)value;
+            var numericValue = (BigQueryBigNumeric)value;
             string typePrefix = Parameters.StoreType.StartsWith("BIG", StringComparison.OrdinalIgnoreCase)
                 ? "BIGNUMERIC" : "NUMERIC";
             return $"{typePrefix} '{numericValue}'";
@@ -42,7 +42,7 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
             if (parameter is Data.BigQuery.BigQueryParameter bigQueryParameter)
             {
-                bigQueryParameter.BigQueryDbType = BigQueryDbType.Numeric;
+                bigQueryParameter.BigQueryDbType = BigQueryDbType.BigNumeric;
             }
 
             if (Parameters.Precision.HasValue)
