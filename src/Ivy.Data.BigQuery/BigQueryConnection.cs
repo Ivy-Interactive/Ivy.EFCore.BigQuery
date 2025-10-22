@@ -277,7 +277,7 @@ namespace Ivy.Data.BigQuery
             addRow("JSON", BigQueryDbType.Json, typeof(string), false, false, false, null, null);
 
             addRow("NUMERIC", BigQueryDbType.Numeric, typeof(BigQueryNumeric), true, false, false, "NUMERIC({0}, {1})", "precision, scale");
-            addRow("BIGNUMERIC", BigQueryDbType.BigNumeric, typeof(BigQueryNumeric), true, false, false, "BIGNUMERIC({0}, {1})", "precision, scale");
+            addRow("BIGNUMERIC", BigQueryDbType.BigNumeric, typeof(BigQueryBigNumeric), true, false, false, "BIGNUMERIC({0}, {1})", "precision, scale");
 
             addRow("STRUCT", BigQueryDbType.Struct, typeof(IDictionary<string, object>), false, false, false, null, null);
             addRow("ARRAY", BigQueryDbType.Array, typeof(object[]), false, false, false, null, null);
@@ -306,11 +306,11 @@ namespace Ivy.Data.BigQuery
 
         private DataTable GetTablesSchema(string[]? restrictionValues)
         {
-            string? datasetId = (restrictionValues?.Length > 1) ? restrictionValues[1] : DefaultDatasetId;
+            string? datasetId = (restrictionValues?.Length > 1 && !string.IsNullOrWhiteSpace(restrictionValues[1])) ? restrictionValues[1] : DefaultDatasetId;
 
             if (string.IsNullOrWhiteSpace(datasetId))
             {
-                throw new ArgumentException("A dataset must be specified either in the connection string ('DefaultDataset=...') or as the second restriction value for the 'Tables' schema collection.");
+                throw new ArgumentException("A dataset must be specified either in the connection string ('DefaultDatasetId=...') or as the second restriction value for the 'Tables' schema collection.");
             }
 
             var queryBuilder = new StringBuilder();
@@ -318,6 +318,8 @@ namespace Ivy.Data.BigQuery
 
             var whereClauses = new List<string>();
             var parameters = new List<BigQueryParameter>();
+
+            whereClauses.Add("table_type IN('BASE TABLE', 'VIEW')");
 
             if (restrictionValues?.Length > 0 && !string.IsNullOrWhiteSpace(restrictionValues[0]))
             {
@@ -376,7 +378,7 @@ namespace Ivy.Data.BigQuery
 
             if (string.IsNullOrWhiteSpace(datasetId))
             {
-                throw new ArgumentException("A dataset must be specified either in the connection string ('DefaultDataset=...') or as the second restriction value for the 'Columns' schema collection.");
+                throw new ArgumentException("A dataset must be specified either in the connection string ('DefaultDatasetId=...') or as the second restriction value for the 'Columns' schema collection.");
             }
 
             var queryBuilder = new StringBuilder();
@@ -390,9 +392,9 @@ namespace Ivy.Data.BigQuery
                 column_default,
                 is_nullable,
                 data_type,
-                character_maximum_length,
-                numeric_precision,
-                numeric_scale
+                CAST(REGEXP_EXTRACT(data_type, r'STRING\((\d+)\)') AS INT64) AS character_maximum_length,
+                CAST(REGEXP_EXTRACT(data_type, r'(?:NUMERIC|BIGNUMERIC)\((\d+)') AS INT64) AS numeric_precision,
+                CAST(REGEXP_EXTRACT(data_type, r'(?:NUMERIC|BIGNUMERIC)\(\d+,\s*(\d+)\)') AS INT64) AS numeric_scale
             FROM `{datasetId}`.INFORMATION_SCHEMA.COLUMNS
             """);
 
@@ -421,7 +423,7 @@ namespace Ivy.Data.BigQuery
                 parameters.Add(new BigQueryParameter("@columnName", BigQueryDbType.String, restrictionValues[3]));
             }
 
-            if (whereClauses.Any())
+            if (whereClauses.Count != 0)
             {
                 queryBuilder.Append(" WHERE ");
                 queryBuilder.Append(string.Join(" AND ", whereClauses));
