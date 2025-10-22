@@ -32,12 +32,23 @@ namespace Ivy.Data.BigQuery
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _results = results ?? throw new ArgumentNullException(nameof(results));
-            _schema = results.Schema ?? throw new InvalidOperationException("Query results must have a schema.");
             _recordsAffected = recordsAffected;
             _closeConnection = closeConnection;
             _command = command;
             _behavior = behavior;
 
+            // For DML
+            if (results.Schema == null)
+            {
+                _schema = new TableSchema();
+                _fieldNameLookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                _fieldTypes = Array.Empty<Type>();
+                _rowEnumerator = null;
+                _hasRows = false;
+                return;
+            }
+
+            _schema = results.Schema;
             _fieldNameLookup = new Dictionary<string, int>(_schema.Fields.Count, StringComparer.OrdinalIgnoreCase);
             _fieldTypes = new Type[_schema.Fields.Count];
 
@@ -800,7 +811,8 @@ namespace Ivy.Data.BigQuery
                 "DATE" => isArray ? typeof(DateTime[]) : typeof(DateTime?),
                 "TIME" => isArray ? typeof(TimeSpan[]) : typeof(TimeSpan?),
                 "DATETIME" => isArray ? typeof(DateTime[]) : typeof(DateTime),
-                "NUMERIC" or "BIGNUMERIC" => isArray ? typeof(BigQueryNumeric[]) : typeof(BigQueryNumeric),
+                "NUMERIC" => isArray ? typeof(BigQueryNumeric[]) : typeof(BigQueryNumeric),
+                "BIGNUMERIC" => isArray ? typeof(BigQueryBigNumeric[]) : typeof(BigQueryBigNumeric),
                 "GEOGRAPHY" => isArray ? typeof(string[]) : typeof(string),
                 "JSON" => isArray ? typeof(string[]) : typeof(string),
                 "STRUCT" => isArray ? typeof(Dictionary<string, object>[]) : typeof(Dictionary<string, object>),
