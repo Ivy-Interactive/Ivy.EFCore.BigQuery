@@ -1,13 +1,7 @@
 ﻿using Ivy.Data.BigQuery;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.TestUtilities;
-using NetTopologySuite.Features;
-using System;
-using System.Collections.Generic;
 using System.Data.Common;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace Ivy.EFCore.BigQuery.FunctionalTests.Query;

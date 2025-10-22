@@ -30,4 +30,8 @@
     <Folder Include="TestUtilities\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="BigQueryUpdateTestSeed.sql" />
+  </ItemGroup>
+
 </Project>

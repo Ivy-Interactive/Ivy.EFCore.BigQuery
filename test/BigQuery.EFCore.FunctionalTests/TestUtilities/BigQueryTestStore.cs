@@ -228,6 +228,26 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.TestUtilities
             return Task.CompletedTask;
         }
 
+        public int ExecuteNonQuery(string sql, params object[] parameters)
+        {
+            using var command = CreateCommand(sql, parameters);
+            return command.ExecuteNonQuery();
+        }
+        private DbCommand CreateCommand(string commandText, object[] parameters)
+        {
+            var command = (BigQueryCommand)Connection.CreateCommand();
+
+            command.CommandText = commandText;
+            command.CommandTimeout = CommandTimeout;
+
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                command.Parameters.AddWithValue("@p" + i, parameters[i]);
+            }
+
+            return command;
+        }
+
         public override void Dispose()
         {
             using var controlConnection = new BigQueryConnection(TestEnvironment.DefaultConnection);
