@@ -180,7 +180,7 @@ namespace Ivy.Data.BigQuery
 
                 if (job.Status.ErrorResult != null)
                 {
-                    throw BigQueryExceptionHelper.CreateException(job.Status.ErrorResult, $"Query execution failed: {job.Status.ErrorResult.Message}");
+                    throw BigQueryExceptionHelper.CreateException(job.Status.ErrorResult, $"Query execution failed: {job.Status.ErrorResult.Message} ${this.CommandText}");
                 }
 
                 var results = await client.GetQueryResultsAsync(
