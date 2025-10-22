@@ -8,10 +8,10 @@ namespace Ivy.EFCore.BigQuery.Infrastructure.Internal
     public class BigQueryOptionsExtension : RelationalOptionsExtension
     {
         //public string? ProjectId { get; private set; }
-        //public string? DatasetId { get; private set; }
         //public string? CredentialsPath { get; private set; }
 
         private DbContextOptionsExtensionInfo? _info;
+        public string? DefaultDataset;
 
         public BigQueryOptionsExtension()
         {
@@ -27,6 +27,18 @@ namespace Ivy.EFCore.BigQuery.Infrastructure.Internal
         protected BigQueryOptionsExtension(BigQueryOptionsExtension copyFrom)
             : base(copyFrom)
         {
+            DefaultDataset = copyFrom.DefaultDataset;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is BigQueryOptionsExtension other
+                && base.Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
 
         public override RelationalOptionsExtension WithConnectionString(string? connectionString)
@@ -94,6 +106,7 @@ namespace Ivy.EFCore.BigQuery.Infrastructure.Internal
             {
                 var csb = new BigQueryConnectionStringBuilder(Extension.ConnectionString);
                 debugInfo["BigQueryExtension:ProjectId"] = csb.ProjectId ?? "(none)";
+                debugInfo["BigQueryExtension:DefaultDataset"] = csb.DefaultDatasetId ?? "(none)";
                 debugInfo["BigQueryExtension:AuthMethod"] = csb.AuthMethod.ToString();
                 if (!string.IsNullOrWhiteSpace(csb.DefaultDatasetId))
                 {
@@ -104,7 +117,8 @@ namespace Ivy.EFCore.BigQuery.Infrastructure.Internal
             public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
             {
                 return other is BigQueryOptionsExtensionInfo otherBigQuery
-                    && Extension.Equals(otherBigQuery.Extension);
+                    && base.ShouldUseSameServiceProvider(other)
+                    && string.Equals(Extension.ConnectionString, otherBigQuery.Extension.ConnectionString, StringComparison.Ordinal);
             }
         }
     }

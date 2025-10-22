@@ -1,7 +1,7 @@
-﻿using Google.Cloud.BigQuery.V2;
-using Ivy.EFCore.BigQuery.Diagnostics;
+﻿using Ivy.EFCore.BigQuery.Diagnostics;
 using Ivy.EFCore.BigQuery.Infrastructure;
 using Ivy.EFCore.BigQuery.Infrastructure.Internal;
+using Ivy.EFCore.BigQuery.Metadata.Conventions;
 using Ivy.EFCore.BigQuery.Migrations;
 using Ivy.EFCore.BigQuery.Query.Internal;
 using Ivy.EFCore.BigQuery.Storage.Internal;
@@ -9,13 +9,13 @@ using Ivy.EFCore.BigQuery.Update.Internal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.Extensions.DependencyInjection;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Ivy.EFCore.BigQuery.Extensions
 {
@@ -45,14 +45,15 @@ namespace Ivy.EFCore.BigQuery.Extensions
               .TryAdd<IDatabaseProvider, DatabaseProvider<BigQueryOptionsExtension>>()
               .TryAdd<IRelationalTypeMappingSource, BigQueryTypeMappingSource>()
               .TryAdd<ISqlGenerationHelper, BigQuerySqlGenerationHelper>()
-              //.TryAdd<IModelValidator, BigQueryModelValidator>() //todo
+              .TryAdd<IRelationalAnnotationProvider, RelationalAnnotationProvider>()
+              .TryAdd<IProviderConventionSetBuilder, BigQueryConventionSetBuilder>()
+              //.TryAdd<IModelValidator, BigQueryModelValidator>()
               .TryAdd<IModificationCommandBatchFactory, BigQueryModificationCommandBatchFactory>()
               .TryAdd<IRelationalDatabaseCreator, BigQueryDatabaseCreator>()
               .TryAdd<IHistoryRepository, BigQueryHistoryRepository>()
               .TryAdd<IRelationalConnection>(p => p.GetRequiredService<IBigQueryRelationalConnection>())
               .TryAdd<IMigrationsSqlGenerator, BigQueryMigrationsSqlGenerator>()
-              //.TryAdd<IMemberTranslatorProvider, BigQueryMemberTranslatorProvider>() //todo
-              .TryAdd<IMemberTranslatorProvider, RelationalMemberTranslatorProvider>() //todo remove
+              .TryAdd<IMemberTranslatorProvider, BigQueryMemberTranslatorProvider>()
               .TryAdd<IUpdateSqlGenerator, BigQueryUpdateSqlGenerator>()
               .TryAdd<ISqlExpressionFactory, BigQuerySqlExpressionFactory>()
               .TryAdd<IMethodCallTranslatorProvider, BigQueryMethodCallTranslatorProvider>()
@@ -60,11 +61,14 @@ namespace Ivy.EFCore.BigQuery.Extensions
               //.TryAdd<IAggregateMethodCallTranslatorProvider, BigQueryAggregateMethodCallTranslatorProvider>() //todo
               .TryAdd<IQuerySqlGeneratorFactory, BigQueryQuerySqlGeneratorFactory>()
               .TryAdd<IExecutionStrategyFactory, BigQueryExecutionStrategyFactory>()
-              .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, BigQueryQueryableMethodTranslatingExpressionVisitorFactory>()
+              .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, BigQueryQueryableMethodTranslatingExpressionVisitorFactory>()              
+              .TryAdd<IQueryCompilationContextFactory, BigQueryQueryCompilationContextFactory>()
+              
               .TryAddProviderSpecificServices(
                   s =>
                   {
                       s.TryAddScoped<IBigQueryRelationalConnection, BigQueryRelationalConnection>();
+                      s.TryAddScoped<IBigQueryUpdateSqlGenerator>(p => (IBigQueryUpdateSqlGenerator)p.GetRequiredService<IUpdateSqlGenerator>());
                   })
               .TryAddCoreServices();
             return serviceCollection;
