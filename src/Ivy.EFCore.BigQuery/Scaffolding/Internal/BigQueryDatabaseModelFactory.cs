@@ -1,16 +1,19 @@
-﻿using Google.Cloud.BigQuery.V2;
+using Google.Cloud.BigQuery.V2;
+using Ivy.Data.BigQuery;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Ivy.EFCore.BigQuery.Scaffolding.Internal
 {
-    //todo unhardcode
     public class BigQueryDatabaseModelFactory : DatabaseModelFactory
     {
         private const string _projectId = "";
@@ -24,127 +27,229 @@ namespace Ivy.EFCore.BigQuery.Scaffolding.Internal
         }
 
 
-        //todo update
         public override DatabaseModel Create(string connectionString, DatabaseModelFactoryOptions options)
         {
-            var client = BigQueryClient.Create(_projectId);
-            var datasetId = "";
+            using var connection = new BigQueryConnection(connectionString);
+            return Create(connection, options);
+        }
 
-
-            var tables = client.ListTables(_projectId, datasetId);
-            var databaseModel = new DatabaseModel();
-
-            foreach (var table in tables)
+        public override DatabaseModel Create(DbConnection dbConnection, DatabaseModelFactoryOptions options)
+        {
+            var connection = (BigQueryConnection)dbConnection;
+            var connectionStartedOpen = connection.State == ConnectionState.Open;
+            if (!connectionStartedOpen)
             {
-                var databaseTable = new DatabaseTable { Name = table.Reference.TableId };
-                var tableSchema = client.GetTable(table.Reference).Schema;
-                DatabaseColumn primaryKeyColumn = null;
-
-                foreach (var field in tableSchema.Fields)
-                {
-                    Console.WriteLine($"Processing column: {field.Name}, Type: {field.Type}");
-
-                    var column = new DatabaseColumn
-                    {
-                        Name = field.Name,
-                        StoreType = field.Type.ToString().ToLowerInvariant().Replace("geography", "string"),
-                        IsNullable = field.Mode != "REQUIRED",
-                        Table = databaseTable,
-
-                    };
-
-                    if (primaryKeyColumn == null)
-                    {
-                        primaryKeyColumn = column;
-                    }
-
-                    databaseTable.Columns.Add(column);
-                }
-
-                if (primaryKeyColumn != null)
-                {
-                    var primaryKey = new DatabasePrimaryKey { Table = databaseTable };
-                    primaryKey.Columns.Add(primaryKeyColumn);
-                    databaseTable.PrimaryKey = primaryKey;
-                }
-
-                databaseModel.Tables.Add(databaseTable);
+                connection.Open();
             }
 
-            return databaseModel;
+            try
+            {
+                var databaseModel = new DatabaseModel
+                {
+                    DatabaseName = connection.Database
+                };
+
+                databaseModel.DatabaseName = connection.Database;
+
+                var tables = GetTables(connection, databaseModel, options.Tables.ToList(), options.Schemas.ToList());
+
+                foreach (var table in tables)
+                {
+                    databaseModel.Tables.Add(table);
+                }
+
+                GetKeys(connection, tables);
+
+                return databaseModel;
+            }
+            finally
+            {
+                if (!connectionStartedOpen)
+                {
+                    connection.Close();
+                }
+            }
         }
 
-        public override DatabaseModel Create(DbConnection connection, DatabaseModelFactoryOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        //https://cloud.google.com/bigquery/docs/information-schema-tables
-        private List<DatabaseTable> GetTables(DbConnection connection, IReadOnlyList<string> tableFilters, IReadOnlyList<string> schemaFilters)
+        private List<DatabaseTable> GetTables(DbConnection connection, DatabaseModel databaseModel, IReadOnlyList<string> tableFilters, IReadOnlyList<string> schemaFilters)
         {
             var tables = new List<DatabaseTable>();
-            var schema = connection.GetSchema("TABLES");
 
-            foreach (DataRow row in schema.Rows)
+            var schemaFilter = schemaFilters.FirstOrDefault();
+
+            using var dt = connection.GetSchema("Tables", new[] { null, schemaFilter });
+
+            foreach (DataRow row in dt.Rows)
             {
-                var schemaName = row["TABLE_SCHEMA"] as string;
-                var tableName = row["TABLE_NAME"] as string;
+                var tableSchema = (string)row["TABLE_SCHEMA"];
+                var tableName = (string)row["TABLE_NAME"];
 
-                // Apply filters if provided
-                if ((schemaFilters.Count == 0 || schemaFilters.Contains(schemaName)) &&
-                    (tableFilters.Count == 0 || tableFilters.Contains(tableName)))
+                if (tableFilters.Any() && !tableFilters.Contains(tableName)) continue;
+
+                var table = new DatabaseTable
                 {
-                    tables.Add(new DatabaseTable
-                    {
-                        Schema = schemaName,
-                        Name = tableName
-                    });
-                }
+                    Schema = tableSchema,
+                    Name = tableName,
+                    Database = databaseModel
+                };
+
+                tables.Add(table);
             }
+
+            GetColumns(connection, tables);
+
             return tables;
         }
 
-        private List<DatabaseColumn> GetColumns(DbConnection connection, ISet<(string Schema, string Name)> tables)
+        private void GetColumns(DbConnection connection, IReadOnlyList<DatabaseTable> tables)
         {
-            var columns = new List<DatabaseColumn>();
-            var schema = connection.GetSchema("Columns");
-
-            foreach (DataRow row in schema.Rows)
+            foreach (var table in tables)
             {
-                var schemaName = row["TABLE_SCHEMA"] as string;
-                var tableName = row["TABLE_NAME"] as string;
+                using var dt = connection.GetSchema(
+                    "Columns",
+                    new[] { null, table.Schema, table.Name, null });
 
-                if (!tables.Contains((schemaName, tableName)))
+                foreach (DataRow row in dt.Rows)
+                {
+                    var isNullable = (bool)row["IS_NULLABLE"];
+                    var dataType = (string)row["DATA_TYPE"];
+                    var columnName = (string)row["COLUMN_NAME"];
+                    var defaultValue = row["COLUMN_DEFAULT"] == DBNull.Value ? null : (string)row["COLUMN_DEFAULT"];
+                    var ordinal = Convert.ToInt32(row["ORDINAL_POSITION"]);
+
+                    var dbColumn = new DatabaseColumn
+                    {
+                        StoreType = dataType,
+                        Name = columnName,
+                        IsNullable = isNullable,
+                        DefaultValueSql = defaultValue,
+                        Table = table
+                    };
+
+                    table.Columns.Add(dbColumn);
+                }
+            }
+        }
+        
+        private void GetKeys(DbConnection connection, IReadOnlyList<DatabaseTable> tables)
+        {
+            if (!tables.Any())
+            {
+                return;
+            }
+
+            var schema = tables.First().Schema;
+            var ddlMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = $"SELECT table_name, ddl FROM `{schema}`.INFORMATION_SCHEMA.TABLES WHERE table_type IN('BASE TABLE', 'VIEW')";
+
+                if (connection.State != ConnectionState.Open)
+                {
+                    connection.Open();
+                }
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var tableName = reader.GetString(0);
+                        var ddl = reader.GetString(1);
+                        if (!string.IsNullOrWhiteSpace(ddl))
+                        {
+                            ddlMap[tableName] = ddl;
+                        }
+                    }
+                }
+            }
+
+            foreach (var table in tables)
+            {
+                if (!ddlMap.TryGetValue(table.Name, out var ddl))
                 {
                     continue;
                 }
 
-                var columnName = row["COLUMN_NAME"] as string;
-                var storeType = row["DATA_TYPE"] as string;
-                var isNullable = (bool)row["IS_NULLABLE"];
-                var ordinal = Convert.ToInt32(row["ORDINAL_POSITION"]);
-                var defaultValueSql = row["COLUMN_DEFAULT"] as string;
-
-
-                //var typeMapping = _typeMappingSource.FindMapping(storeType);
-                //if (typeMapping == null)
-                //{
-                //    Logger.ColumnTypeNotMappedWarning(tableName, columnName, storeType);
-                //    continue; 
-                //}
-
-                var column = new DatabaseColumn
+                var pkMatch = Regex.Match(ddl, @"PRIMARY KEY\s*\((.*?)\)", RegexOptions.IgnoreCase);
+                if (pkMatch.Success)
                 {
-                    Name = columnName,
-                    StoreType = storeType,
-                    IsNullable = isNullable,
-                    DefaultValueSql = defaultValueSql,
-                    ValueGenerated = null, 
-                };
+                    var columnsGroup = pkMatch.Groups[1].Value;
+                    var pkColumnNames = columnsGroup.Split(',').Select(s => s.Trim().Trim('`')).ToList();
 
-                columns.Add(column);
+                    var pkColumns = pkColumnNames
+                        .Select(name => table.Columns.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                        .Where(c => c != null)
+                        .ToList();
+
+                    if (pkColumns.Count == pkColumnNames.Count)
+                    {
+                        var primaryKey = new DatabasePrimaryKey
+                        {
+                            Table = table,
+                            Name = $"PK_{table.Name}"
+                        };
+
+                        foreach (var column in pkColumns)
+                        {
+                            primaryKey.Columns.Add(column);
+                        }
+
+                        table.PrimaryKey = primaryKey;
+                    }
+                }
+                
+                var fkMatches = Regex.Matches(ddl, @"FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)", RegexOptions.IgnoreCase);
+                
+                foreach (Match fkMatch in fkMatches)
+                {
+                    var columnsGroup = fkMatch.Groups[1].Value;
+                    var fkColumnNames = columnsGroup.Split(',').Select(s => s.Trim().Trim('`')).ToList();
+
+                    var principalTableNameWithSchema = fkMatch.Groups[2].Value.Trim().Trim('`');
+                    var principalTableParts = principalTableNameWithSchema.Split('.');
+                    var principalTableName = principalTableParts.Last();
+            
+                    var principalTable = tables.FirstOrDefault(t => t.Name.Equals(principalTableName, StringComparison.OrdinalIgnoreCase));
+
+                    if (principalTable == null)
+                    {
+                        continue;
+                    }
+
+                    var principalColumnsGroup = fkMatch.Groups[3].Value;
+                    var principalColumnNames = principalColumnsGroup.Split(',').Select(s => s.Trim().Trim('`')).ToList();
+
+                    var fkColumns = fkColumnNames
+                        .Select(name => table.Columns.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                        .Where(c => c != null)
+                        .ToList();
+
+                    var principalColumns = principalColumnNames
+                        .Select(name => principalTable.Columns.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                        .Where(c => c != null)
+                        .ToList();
+
+                    if (fkColumns.Count == fkColumnNames.Count && principalColumns.Count == principalColumnNames.Count)
+                    {
+                        var foreignKey = new DatabaseForeignKey
+                        {
+                            Table = table,
+                            PrincipalTable = principalTable,
+                            Name = $"FK_{table.Name}_{principalTable.Name}",
+                            OnDelete = ReferentialAction.NoAction
+                        };
+
+                        for (int i = 0; i < fkColumns.Count; i++)
+                        {
+                            foreignKey.Columns.Add(fkColumns[i]);
+                            foreignKey.PrincipalColumns.Add(principalColumns[i]);
+                        }
+
+                        table.ForeignKeys.Add(foreignKey);
+                    }
+                }
             }
-            return columns;
         }
     }
 }
