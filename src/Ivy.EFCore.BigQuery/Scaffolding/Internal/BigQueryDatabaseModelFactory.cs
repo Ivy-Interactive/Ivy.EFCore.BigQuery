@@ -83,15 +83,20 @@ namespace Ivy.EFCore.BigQuery.Scaffolding.Internal
             {
                 var tableSchema = (string)row["TABLE_SCHEMA"];
                 var tableName = (string)row["TABLE_NAME"];
+                var tableType = (string)row["TABLE_TYPE"];
 
                 if (tableFilters.Any() && !tableFilters.Contains(tableName)) continue;
 
-                var table = new DatabaseTable
+                var table = tableType switch
                 {
-                    Schema = tableSchema,
-                    Name = tableName,
-                    Database = databaseModel
+                    "BASE TABLE" => new DatabaseTable(),
+                    "VIEW" => new DatabaseView(),
+                    _ => throw new ArgumentOutOfRangeException($"Unknown table_type '{tableType}' when scaffolding {tableSchema}.{tableName}")
                 };
+
+                table.Schema = tableSchema;
+                table.Name = tableName;
+                table.Database = databaseModel;
 
                 tables.Add(table);
             }
