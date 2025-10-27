@@ -207,6 +207,7 @@ namespace Ivy.Data.BigQuery
             {
                 return (DbType.DateTime, Google.Cloud.BigQuery.V2.BigQueryDbType.DateTime);
             }
+            if (type == typeof(DateOnly) || type == typeof(DateOnly?)) return (DbType.Date, Google.Cloud.BigQuery.V2.BigQueryDbType.Date);
             if (type == typeof(TimeSpan) || type == typeof(TimeSpan?)) return (DbType.Time, Google.Cloud.BigQuery.V2.BigQueryDbType.Time);
             if (type == typeof(decimal) || type == typeof(decimal?)) return (DbType.Decimal, Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric);
             if (type == typeof(BigQueryNumeric) || type == typeof(BigQueryNumeric?))
@@ -297,6 +298,11 @@ namespace Ivy.Data.BigQuery
                 {
                     type = Google.Cloud.BigQuery.V2.BigQueryDbType.Bytes;
                 }
+            }
+
+            else if (apiValue is DateOnly dateOnlyValue)
+            {
+                apiValue = dateOnlyValue.ToDateTime(TimeOnly.MinValue);
             }
 
             return new Google.Cloud.BigQuery.V2.BigQueryParameter(name, type.Value, apiValue);

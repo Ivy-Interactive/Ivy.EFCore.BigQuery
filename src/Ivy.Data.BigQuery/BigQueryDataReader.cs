@@ -167,7 +167,7 @@ namespace Ivy.Data.BigQuery
             schemaTable.Columns.Add(SchemaTableColumn.ColumnName, typeof(string));
             schemaTable.Columns.Add(SchemaTableColumn.ColumnOrdinal, typeof(int));
             schemaTable.Columns.Add(SchemaTableColumn.ColumnSize, typeof(int));
-            schemaTable.Columns.Add(SchemaTableColumn.NumericPrecision, typeof(short)); 
+            schemaTable.Columns.Add(SchemaTableColumn.NumericPrecision, typeof(short));
             schemaTable.Columns.Add(SchemaTableColumn.NumericScale, typeof(short));
             schemaTable.Columns.Add(SchemaTableColumn.DataType, typeof(Type));
             schemaTable.Columns.Add(SchemaTableOptionalColumn.ProviderSpecificDataType, typeof(BigQueryDbType));
@@ -305,7 +305,7 @@ namespace Ivy.Data.BigQuery
 
             try
             {
-                
+
                 switch (fieldType)
                 {
                     case BigQueryDbType.Timestamp:
@@ -349,7 +349,7 @@ namespace Ivy.Data.BigQuery
             return (value == null ? null : Convert.ToString(value, CultureInfo.InvariantCulture)) ?? string.Empty;
         }
 
-       
+
         public override T GetFieldValue<T>(int ordinal)
         {
             EnsureNotClosed();
@@ -370,7 +370,7 @@ namespace Ivy.Data.BigQuery
 
             if (typeof(T) == typeof(bool))
             {
-                if (value is bool boolValue) 
+                if (value is bool boolValue)
                     return (T)(object)boolValue;
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type 'System.Boolean'.");
             }
@@ -407,15 +407,16 @@ namespace Ivy.Data.BigQuery
                 return stringValue.Length > 0 ? (T)(object)stringValue[0] : throw new InvalidCastException("Cannot cast empty string to type 'System.Char'.");
             }
 
-            if (IsNumericType<T>() && !Util.IsNumericType(bqFieldType)){
+            if (IsNumericType<T>() && !Util.IsNumericType(bqFieldType))
+            {
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type '{typeof(T)}'.");
-            }            
+            }
 
             if (typeof(T) == typeof(string) && value is not string)
             {
                 throw new InvalidCastException($"Cannot cast value of type '{value?.GetType()}' from column '{GetName(ordinal)}' to type '{typeof(T)}'.");
             }
-    
+
             try
             {
                 switch (value)
@@ -434,24 +435,25 @@ namespace Ivy.Data.BigQuery
                 switch (bqFieldType)
                 {
                     case BigQueryDbType.Timestamp when value is DateTimeOffset dtoValue:
-                    {
-                        if (typeof(T) == typeof(DateTime)) return (T)(object)dtoValue.DateTime;
-                        if (typeof(T) == typeof(DateTimeOffset)) return (T)(object)dtoValue;
-                        break;
-                    }
+                        {
+                            if (typeof(T) == typeof(DateTime)) return (T)(object)dtoValue.DateTime;
+                            if (typeof(T) == typeof(DateTimeOffset)) return (T)(object)dtoValue;
+                            break;
+                        }
                     case BigQueryDbType.Date or BigQueryDbType.DateTime when value is DateTime dtValue:
-                    {
-                        if (typeof(T) == typeof(DateTime)) return (T)(object)dtValue;
-                        if (typeof(T) == typeof(DateTimeOffset)) return (T)(object)new DateTimeOffset(dtValue);
-                        break;
-                    }
+                        {
+                            if (typeof(T) == typeof(DateTime)) return (T)(object)dtValue;
+                            if (typeof(T) == typeof(DateTimeOffset)) return (T)(object)new DateTimeOffset(dtValue);
+                            if (typeof(T) == typeof(DateOnly)) return (T)(object)DateOnly.FromDateTime(dtValue);
+                            break;
+                        }
                 }
 
                 if (value is BigQueryNumeric numericValue)
                 {
                     if (typeof(T) == typeof(decimal)) return (T)(object)numericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
                     if (typeof(T) == typeof(double)) return (T)(object)double.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
-                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(numericValue.ToString(), CultureInfo.InvariantCulture); // return (T)(object)Convert.ToInt64(decimal.Truncate(intermediate));
+                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
                     if (typeof(T) == typeof(string)) return (T)(object)numericValue.ToString();
                 }
 
@@ -459,7 +461,7 @@ namespace Ivy.Data.BigQuery
                 {
                     if (typeof(T) == typeof(decimal)) return (T)(object)bigNumericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
                     if (typeof(T) == typeof(double)) return (T)(object)double.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
-                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture); // return (T)(object)Convert.ToInt64(decimal.Truncate(intermediate));
+                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
                     if (typeof(T) == typeof(string)) return (T)(object)bigNumericValue.ToString();
                 }
 
@@ -638,7 +640,7 @@ namespace Ivy.Data.BigQuery
             //Todo refactor
             ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, int.MaxValue);
-            if (bufferOffset < 0 || bufferOffset >= buffer?.Length +1)
+            if (bufferOffset < 0 || bufferOffset >= buffer?.Length + 1)
                 throw new ArgumentOutOfRangeException($"bufferOffset must be between 0 and {buffer?.Length}");
             if (checked(bufferOffset + length) > buffer.Length)
             {
