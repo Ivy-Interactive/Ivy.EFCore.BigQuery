@@ -148,7 +148,7 @@ namespace Ivy.EFCore.BigQuery.Update.Internal
                 var command = modificationCommands[commandIndex];
                 var currentWriteOperations = command.ColumnModifications.Where(o => o.IsWrite).ToList();
 
-                commandStringBuilder.Append("(");
+                commandStringBuilder.Append('(');
                 for (var i = 0; i < currentWriteOperations.Count; i++)
                 {
                     if (i > 0)
@@ -174,7 +174,7 @@ namespace Ivy.EFCore.BigQuery.Update.Internal
                         commandStringBuilder.Append("DEFAULT");
                     }
                 }
-                commandStringBuilder.Append(")");
+                commandStringBuilder.Append(')');
             }
 
             commandStringBuilder.AppendLine(SqlGenerationHelper.StatementTerminator);

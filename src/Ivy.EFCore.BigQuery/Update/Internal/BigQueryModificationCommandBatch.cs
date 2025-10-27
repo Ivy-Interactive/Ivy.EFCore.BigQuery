@@ -9,6 +9,12 @@ namespace Ivy.EFCore.BigQuery.Update.Internal
         private const int DefaultMaxBatchSize = 1000;
         private const int MaxParameterCount = 10000;
 
+        // BigQuery has a 10MB request size limit
+        // https://cloud.google.com/bigquery/quotas#standard_tables
+        private const int MaxRequestSizeBytes = 10_000_000;
+        // Use 9.5MB safety margin to account for HTTP headers, encoding overhead, and parameter values
+        private const int MaxRequestSizeSafetyMargin = 9_500_000;
+
         private readonly List<IReadOnlyModificationCommand> _pendingBulkInsertCommands = [];
 
         public BigQueryModificationCommandBatch(
@@ -28,7 +34,36 @@ namespace Ivy.EFCore.BigQuery.Update.Internal
                 return false;
             }
 
+            var estimatedSizeBytes = EstimateSqlSizeInBytes();
+            if (estimatedSizeBytes > MaxRequestSizeSafetyMargin)
+            {
+                return false;
+            }
+
             return base.IsValid();
+        }
+
+        private int EstimateSqlSizeInBytes()
+        {
+            var sqlLength = SqlBuilder.Length;
+
+            if (_pendingBulkInsertCommands.Count > 0)
+            {
+                var firstCommand = _pendingBulkInsertCommands[0];
+                var numColumns = firstCommand.ColumnModifications.Count(o => o.IsWrite);
+
+                // Column identifiers: numColumns * 50 bytes average
+                // Parameter placeholders or literals: numColumns * 100 bytes average
+                // Parentheses, commas, and whitespace: numColumns * 2 bytes
+                var estimatedBytesPerRow = numColumns * 150 + 10;
+                sqlLength += _pendingBulkInsertCommands.Count * estimatedBytesPerRow;
+
+                // INSERT statement overhead
+                sqlLength += 200;
+            }
+
+            // UTF-8 encoding
+            return sqlLength * 3;
         }
 
         protected override void RollbackLastCommand(IReadOnlyModificationCommand modificationCommand)
