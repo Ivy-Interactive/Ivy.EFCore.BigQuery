@@ -79,6 +79,26 @@ namespace Ivy.Data.BigQuery
 
         public string Location => _location;
 
+        /// <summary>
+        /// Gets the underlying BigQueryClient for advanced scenarios.
+        /// </summary>
+        public BigQueryClient GetBigQueryClient()
+        {
+            if (State != ConnectionState.Open)
+            {
+                throw new InvalidOperationException(
+                    "The connection must be open to access the BigQuery client. Call Open() or OpenAsync() first.");
+            }
+
+            if (_client == null)
+            {
+                throw new InvalidOperationException(
+                    "The BigQuery client is not available. Ensure the connection was opened successfully.");
+            }
+
+            return _client;
+        }
+
         protected override DbProviderFactory DbProviderFactory => BigQueryProviderFactory.Instance;
 
         public override async Task OpenAsync(CancellationToken cancellationToken)
