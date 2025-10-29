@@ -15,9 +15,7 @@ public class BigQueryMethodCallTranslatorProvider : RelationalMethodCallTranslat
         AddTranslators(
         [
             new BigQueryStringMethodTranslator(dependencies.SqlExpressionFactory),
-            //new BigQueryArrayMethodTranslator(sqlExpressionFactory, typeMappingSource),
-            //new BigQueryStructMethodTranslator(sqlExpressionFactory),
-            //new BigQueryArrayFunctionsTranslator(sqlExpressionFactory)
+            new BigQueryMathMethodTranslator(dependencies.SqlExpressionFactory, typeMappingSource),
         ]);
     }
 }
