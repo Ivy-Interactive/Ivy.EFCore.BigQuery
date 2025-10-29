@@ -19,6 +19,7 @@ namespace Ivy.Data.BigQuery
         private string _defaultDatasetId;
         private string _location;
         private string _credentialPath;
+        private string _credentialJson;
         private bool _useAdc;
         private int _connectionTimeoutSeconds = 15;
         private bool _isDisposed = false;
@@ -34,14 +35,16 @@ namespace Ivy.Data.BigQuery
 
         /// <summary>
         /// Gets or sets the string used to open the connection.
-        /// Format: "ProjectId=your-project;DefaultDatasetId=your_dataset;Location=US;AuthMethod=JsonCredentials;CredentialsFile=/path/to/key.json;Timeout=30"
+        /// Format: "ProjectId=your-project;DefaultDatasetId=your_dataset;AuthMethod=JsonCredentials;CredentialsFile=/path/to/key.json;Timeout=30"
         /// Or: "ProjectId=your-project;AuthMethod=ApplicationDefaultCredentials;"
+        /// Or: "ProjectId=your-project;AuthMethod=JsonCredentials;JsonCredentials={...json...}"
         /// Supported Keys:
         /// - ProjectId (Required)
         /// - DefaultDatasetId (Optional)
         /// - Location (Optional): Hint for job location.
         /// - AuthMethod (Required): 'JsonCredentials' or 'ApplicationDefaultCredentials'.
-        /// - CredentialsFile (Required if AuthMethod=JsonCredentials): Path to the JSON service account key file.
+        /// - CredentialsFile (Required if AuthMethod=JsonCredentials and JsonCredentials not provided): Path to the JSON service account key file.
+        /// - JsonCredentials (Required if AuthMethod=JsonCredentials and CredentialsFile not provided): JSON service account credentials as a string.
         /// - Timeout (Optional): Seconds to wait for connection/authentication (default 15).
         /// </summary>
         public override string ConnectionString
@@ -124,18 +127,24 @@ namespace Ivy.Data.BigQuery
                 var authMethod = _parsedConnectionString.GetValueOrDefault("AuthMethod");
                 if (string.Equals(authMethod, "JsonCredentials", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (string.IsNullOrWhiteSpace(_credentialPath))
+                    if (!string.IsNullOrWhiteSpace(_credentialJson))
                     {
-                        throw new InvalidOperationException("CredentialsFile must be specified when AuthMethod is JsonCredentials.");
+                        credential = GoogleCredential.FromJson(_credentialJson);
                     }
-                    if (!File.Exists(_credentialPath))
+                    else if (!string.IsNullOrWhiteSpace(_credentialPath))
                     {
-                        throw new FileNotFoundException("Credentials JSON file not found.", _credentialPath);
+                        if (!File.Exists(_credentialPath))
+                        {
+                            throw new FileNotFoundException("Credentials JSON file not found.", _credentialPath);
+                        }
+
+                        await using var stream = new FileStream(_credentialPath, FileMode.Open, FileAccess.Read);
+                        credential = await GoogleCredential.FromStreamAsync(stream, cancellationToken);
                     }
-
-                    await using var stream = new FileStream(_credentialPath, FileMode.Open, FileAccess.Read);
-
-                    credential = await GoogleCredential.FromStreamAsync(stream, cancellationToken);
+                    else
+                    {
+                        throw new InvalidOperationException("Either CredentialsFile or JsonCredentials must be specified when AuthMethod is JsonCredentials.");
+                    }
                 }
                 else if (string.Equals(authMethod, "ApplicationDefaultCredentials", StringComparison.OrdinalIgnoreCase) || _useAdc)
                 {
@@ -544,6 +553,7 @@ namespace Ivy.Data.BigQuery
             _defaultDatasetId = null;
             _location = null;
             _credentialPath = null;
+            _credentialJson = null;
             _useAdc = false;
             _connectionTimeoutSeconds = 15;
 
@@ -566,6 +576,7 @@ namespace Ivy.Data.BigQuery
             _defaultDatasetId = _parsedConnectionString.GetValueOrDefault("DefaultDatasetId");
             _location = _parsedConnectionString.GetValueOrDefault("Location");
             _credentialPath = _parsedConnectionString.GetValueOrDefault("CredentialsFile");
+            _credentialJson = _parsedConnectionString.GetValueOrDefault("JsonCredentials");
 
             string authMethod = _parsedConnectionString.GetValueOrDefault("AuthMethod");
             _useAdc = string.Equals(authMethod, "ApplicationDefaultCredentials", StringComparison.OrdinalIgnoreCase);
@@ -584,12 +595,6 @@ namespace Ivy.Data.BigQuery
             if (string.IsNullOrWhiteSpace(_projectId))
             {
                 throw new ArgumentException("ProjectId must be specified in the connection string.");
-            }
-
-            if (!_useAdc && !string.Equals(authMethod, "JsonCredentials", StringComparison.OrdinalIgnoreCase))
-            {
-                //todo
-                //GoogleCredential.FromJson()
             }
         }
 
