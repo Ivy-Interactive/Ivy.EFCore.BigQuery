@@ -451,17 +451,27 @@ namespace Ivy.Data.BigQuery
 
                 if (value is BigQueryNumeric numericValue)
                 {
-                    if (typeof(T) == typeof(decimal)) return (T)(object)numericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
-                    if (typeof(T) == typeof(double)) return (T)(object)double.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
-                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
+                    var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+                    if (targetType == typeof(BigQueryBigNumeric)) return (T)(object)BigQueryBigNumeric.Parse(numericValue.ToString());
+                    if (targetType == typeof(decimal)) return (T)(object)numericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
+                    if (targetType == typeof(double)) return (T)(object)double.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(long)) return (T)(object)long.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(float)) return (T)(object)float.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(int)) return (T)(object)int.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(short)) return (T)(object)short.Parse(numericValue.ToString(), CultureInfo.InvariantCulture);
                     if (typeof(T) == typeof(string)) return (T)(object)numericValue.ToString();
                 }
 
                 if (value is BigQueryBigNumeric bigNumericValue)
                 {
-                    if (typeof(T) == typeof(decimal)) return (T)(object)bigNumericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
-                    if (typeof(T) == typeof(double)) return (T)(object)double.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
-                    if (typeof(T) == typeof(long)) return (T)(object)long.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
+                    var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+                    if (targetType == typeof(BigQueryNumeric)) return (T)(object)BigQueryNumeric.Parse(bigNumericValue.ToString());
+                    if (targetType == typeof(decimal)) return (T)(object)bigNumericValue.ToDecimal(LossOfPrecisionHandling.Truncate);
+                    if (targetType == typeof(double)) return (T)(object)double.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(long)) return (T)(object)long.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(float)) return (T)(object)float.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(int)) return (T)(object)int.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
+                    if (targetType == typeof(short)) return (T)(object)short.Parse(bigNumericValue.ToString(), CultureInfo.InvariantCulture);
                     if (typeof(T) == typeof(string)) return (T)(object)bigNumericValue.ToString();
                 }
 
