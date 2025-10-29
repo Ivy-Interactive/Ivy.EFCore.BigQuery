@@ -10,6 +10,9 @@ namespace Ivy.EFCore.BigQuery.FunctionalTests.Query
     {
         protected override ITestStoreFactory TestStoreFactory
             => BigQueryNorthwindTestStoreFactory.Instance;
+
+        protected override Type ContextType
+            => typeof(TestModels.Northwind.NorthwindBigQueryContext);
     }
 
     public class NorthwindQueryBigQueryFixture : NorthwindQueryBigQueryFixture<BigQueryNorthwindModelCustomizer>
