@@ -1,4 +1,3 @@
-using Google.Cloud.BigQuery.V2;
 using Ivy.Data.BigQuery;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -6,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Data.Common;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Ivy.EFCore.BigQuery.Scaffolding.Internal
@@ -120,6 +117,13 @@ namespace Ivy.EFCore.BigQuery.Scaffolding.Internal
                     var dataType = (string)row["DATA_TYPE"];
                     var columnName = (string)row["COLUMN_NAME"];
                     var defaultValue = row["COLUMN_DEFAULT"] == DBNull.Value ? null : (string)row["COLUMN_DEFAULT"];
+
+                    // BigQuery returns "NULL" string for columns without defaults
+                    if (string.Equals(defaultValue, "NULL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        defaultValue = null;
+                    }
+
                     var ordinal = Convert.ToInt32(row["ORDINAL_POSITION"]);
 
                     var dbColumn = new DatabaseColumn
