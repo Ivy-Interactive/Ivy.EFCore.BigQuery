@@ -1,4 +1,6 @@
+using Ivy.Data.BigQuery;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
 using System.Globalization;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
@@ -32,6 +34,27 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
             => new BigQueryFloatTypeMapping(parameters);
 
         protected override string GenerateNonNullSqlLiteral(object value)
-            => ((float)value).ToString("R", CultureInfo.InvariantCulture);
+        {
+            var floatValue = (float)value;
+
+            if (float.IsNaN(floatValue))
+                return "CAST('NaN' AS FLOAT64)";
+            if (float.IsPositiveInfinity(floatValue))
+                return "CAST('inf' AS FLOAT64)";
+            if (float.IsNegativeInfinity(floatValue))
+                return "CAST('-inf' AS FLOAT64)";
+
+            return floatValue.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        protected override void ConfigureParameter(DbParameter parameter)
+        {
+            base.ConfigureParameter(parameter);
+
+            if (parameter is BigQueryParameter bigQueryParameter)
+            {
+                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Float64;
+            }
+        }
     }
 }

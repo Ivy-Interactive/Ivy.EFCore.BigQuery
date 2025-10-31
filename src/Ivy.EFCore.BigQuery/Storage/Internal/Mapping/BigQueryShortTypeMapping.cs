@@ -1,4 +1,6 @@
+using Ivy.Data.BigQuery;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
 using System.Globalization;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
@@ -33,5 +35,15 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
         protected override string GenerateNonNullSqlLiteral(object value)
             => ((short)value).ToString(CultureInfo.InvariantCulture);
+
+        protected override void ConfigureParameter(DbParameter parameter)
+        {
+            base.ConfigureParameter(parameter);
+
+            if (parameter is BigQueryParameter bigQueryParameter)
+            {
+                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Int64;
+            }
+        }
     }
 }

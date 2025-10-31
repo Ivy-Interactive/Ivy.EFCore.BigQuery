@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Ivy.Data.BigQuery;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -8,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 {
-    public class BigQueryInt64TypeMapping : LongTypeMapping 
+    public class BigQueryInt64TypeMapping : LongTypeMapping
     {
         private static readonly Type _clrType = typeof(long);
         public BigQueryInt64TypeMapping()
@@ -37,5 +39,15 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
         protected override string GenerateNonNullSqlLiteral(object value)
             => ((long)value).ToString(CultureInfo.InvariantCulture);
+
+        protected override void ConfigureParameter(DbParameter parameter)
+        {
+            base.ConfigureParameter(parameter);
+
+            if (parameter is BigQueryParameter bigQueryParameter)
+            {
+                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Int64;
+            }
+        }
     }
 }

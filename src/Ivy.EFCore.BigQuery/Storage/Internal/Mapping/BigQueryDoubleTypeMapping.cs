@@ -1,11 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
-using System;
-using System.Collections.Generic;
-using System.Data;
+﻿using Ivy.Data.BigQuery;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 {
@@ -26,6 +22,27 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
 
         protected override string GenerateNonNullSqlLiteral(object value)
-            => ((double)value).ToString("G17", CultureInfo.InvariantCulture);
+        {
+            var doubleValue = (double)value;
+
+            if (double.IsNaN(doubleValue))
+                return "CAST('NaN' AS FLOAT64)";
+            if (double.IsPositiveInfinity(doubleValue))
+                return "CAST('inf' AS FLOAT64)";
+            if (double.IsNegativeInfinity(doubleValue))
+                return "CAST('-inf' AS FLOAT64)";
+
+            return doubleValue.ToString("G17", CultureInfo.InvariantCulture);
+        }
+
+        protected override void ConfigureParameter(DbParameter parameter)
+        {
+            base.ConfigureParameter(parameter);
+
+            if (parameter is BigQueryParameter bigQueryParameter)
+            {
+                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Float64;
+            }
+        }
     }
 }

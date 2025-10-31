@@ -74,8 +74,8 @@ namespace Ivy.EFCore.BigQuery.Storage.Internal.Mapping
 
             if (parameter is BigQueryParameter bigQueryParameter)
             {
-                // Use Numeric for both NUMERIC and BIGNUMERIC since BigQueryNumeric objects work with Numeric type
-                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.Numeric;
+                // Use BigNumeric since DecimalToBigQueryNumericConverter produces BigQueryBigNumeric objects
+                bigQueryParameter.BigQueryDbType = Google.Cloud.BigQuery.V2.BigQueryDbType.BigNumeric;
             }
         }
     }
