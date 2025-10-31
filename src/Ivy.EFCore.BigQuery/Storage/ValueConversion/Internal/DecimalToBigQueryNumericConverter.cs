@@ -14,7 +14,7 @@ namespace Ivy.EFCore.BigQuery.Storage.ValueConversion.Internal
         public DecimalToBigQueryNumericConverter(ConverterMappingHints? mappingHints = null)
             : base(
                   v => BigQueryBigNumeric.Parse(v.ToString(CultureInfo.InvariantCulture)),
-                  v => v.ToDecimal(LossOfPrecisionHandling.Throw),
+                  v => v.ToDecimal(LossOfPrecisionHandling.Truncate),
                   mappingHints
                   )
         {
